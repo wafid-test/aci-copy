@@ -9,6 +9,26 @@ import { authRouter } from './routes/auth.js';
 import { svpRouter } from './routes/svp.js';
 import { meRouter } from './routes/me.js';
 
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value || !String(value).trim()) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+}
+
+function validateEnv() {
+  const required = [
+    'JWT_ACCESS_SECRET',
+    'JWT_REFRESH_SECRET',
+    'DATABASE_URL',
+    'SVP_BASE_URL',
+  ];
+
+  for (const key of required) requireEnv(key);
+}
+
+validateEnv();
+
 const app = express();
 const appName = process.env.APP_NAME || 'SVP Backend API';
 

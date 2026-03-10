@@ -1,6 +1,13 @@
 export async function svpRequest(path, { method='GET', token, body } = {}) {
   const base = process.env.SVP_BASE_URL;
   const locale = process.env.SVP_LOCALE || 'en';
+
+  if (!base) {
+    const err = new Error('Missing required environment variable: SVP_BASE_URL');
+    err.statusCode = 500;
+    throw err;
+  }
+
   const url = `${base}${path}${path.includes('?') ? '&' : '?'}locale=${encodeURIComponent(locale)}`;
 
   const headers = {
