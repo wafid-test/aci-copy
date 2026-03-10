@@ -1,0 +1,14 @@
+{
+  "name": "aci-api",
+  "private": true,
+  "scripts": {
+    "backend:install": "npm --prefix backend install",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:start": "npm --prefix backend start",
+    "frontend:install": "npm --prefix frontend install",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:start": "npm --prefix frontend start",
+    "install:all": "npm run backend:install && npm run frontend:install"
+  }
+}
