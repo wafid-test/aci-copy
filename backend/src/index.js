@@ -61,6 +61,12 @@ app.get('/health', (_, res) => res.json({
   service: process.env.RAILWAY_SERVICE_NAME || null,
 }));
 
+app.get('/', (_, res) => res.json({
+  ok: true,
+  app: appName,
+  env: process.env.NODE_ENV || 'development',
+}));
+
 app.use('/api/auth', authRouter);
 app.use('/api', meRouter);
 app.use('/api/svp', svpRouter);
@@ -75,4 +81,5 @@ app.use((err, req, res, next) => {
 });
 
 const port = Number(process.env.PORT || 4000);
-app.listen(port, () => console.log(`${appName} listening on http://localhost:${port}`));
+const host = '0.0.0.0';
+app.listen(port, host, () => console.log(`${appName} listening on http://${host}:${port}`));
