@@ -107,6 +107,13 @@ function buildCenterOptions(items) {
   return Array.from(map.values());
 }
 
+function formatDateLabel(value) {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+}
+
 export default function BookingPage() {
   const router = useRouter();
   const [occupations, setOccupations] = useState([]);
@@ -365,370 +372,348 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="booking-shell">
-      <div className="booking-card">
-        <div className="booking-head">
-          <div>
-            <p className="eyebrow">Booking</p>
-            <h1>Create new booking</h1>
-            <p className="muted">Load real test centers from the API, choose one from the dropdown, then book.</p>
-          </div>
+    <div className="page-shell">
+      <header className="topbar">
+        <div className="topbar__brand">
+          <div className="brand-mark" />
+          <span>Professional Accreditation</span>
+        </div>
+        <div className="topbar__actions">
+          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/exam/reservations">My bookings</Link>
+        </div>
+      </header>
+
+      <main className="page-body">
+        <div className="page-head">
+          <Link className="back-link" href="/dashboard">
+            Back to dashboard
+          </Link>
           <div className="head-actions">
-            <Link href="/dashboard" className="secondary-btn">
-              Dashboard
-            </Link>
-            <Link href="/exam/reservations" className="secondary-btn">
-              My bookings
-            </Link>
+            <button className="ghost-btn" type="button" onClick={createHold} disabled={creatingHold || !sessionId}>
+              {creatingHold ? 'Creating hold...' : 'Create hold'}
+            </button>
+            <button className="primary-btn" type="button" onClick={bookReservation} disabled={booking || !sessionId}>
+              {booking ? 'Booking...' : 'Book now'}
+            </button>
           </div>
         </div>
 
-        {status ? <div className="status-card status-ok">{status}</div> : null}
-        {error ? <div className="status-card status-error">{error}</div> : null}
+        <div className="booking-no">
+          Booking No. <strong>{reservationId || holdId || '-'}</strong>
+        </div>
 
-        <div className="form-grid">
-          <label className="field field-wide">
-            <span>Occupation</span>
-            <select value={selectedOccupationId} onChange={(e) => setSelectedOccupationId(e.target.value)}>
-              <option value="">{loadingOccupations ? 'Loading occupations...' : 'Select occupation'}</option>
-              {occupations.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} {item.id ? `(#${item.id})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
+        {status ? <div className="notice notice--ok">{status}</div> : null}
+        {error ? <div className="notice notice--error">{error}</div> : null}
 
-          <label className="field">
-            <span>Available date</span>
-            <input
-              type="date"
-              value={availableDate}
-              onChange={(e) => setAvailableDate(e.target.value)}
-              list="available-dates"
-            />
-            <datalist id="available-dates">
+        <section className="detail-card">
+          <div className="detail-card__title">Booking details</div>
+
+          <div className="detail-grid">
+            <div className="field-block field-block--wide">
+              <span>Occupation</span>
+              <select value={selectedOccupationId} onChange={(e) => setSelectedOccupationId(e.target.value)}>
+                <option value="">{loadingOccupations ? 'Loading occupations...' : 'Select occupation'}</option>
+                {occupations.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} {item.id ? `(#${item.id})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field-block">
+              <span>Occupation Code</span>
+              <input value={selectedOccupation?.id || ''} readOnly placeholder="Auto" />
+            </div>
+
+            <div className="field-block">
+              <span>Methodology</span>
+              <select value={methodology} onChange={(e) => setMethodology(e.target.value)}>
+                <option value="in_person">Direct Assessment</option>
+                <option value="remote">Remote</option>
+              </select>
+            </div>
+
+            <div className="field-block">
+              <span>Available Date</span>
+              <input type="date" value={availableDate} onChange={(e) => setAvailableDate(e.target.value)} />
+            </div>
+
+            <div className="field-block">
+              <span>Category ID</span>
+              <input value={categoryId} onChange={(e) => setCategoryId(e.target.value)} placeholder="Category ID" />
+            </div>
+
+            <div className="field-block">
+              <span>Language</span>
+              <select value={languageCode} onChange={(e) => setLanguageCode(e.target.value)}>
+                <option value="">Select language</option>
+                {selectedOccupation?.languageCodes.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.englishName} {item.code ? `(${item.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field-block">
+              <span>Test center</span>
+              <select value={selectedCenterId} onChange={(e) => setSelectedCenterId(e.target.value)}>
+                <option value="">Select test center</option>
+                {centerOptions.map((item) => (
+                  <option key={item.siteId} value={item.siteId}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field-block">
+              <span>Session</span>
+              <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+                <option value="">Select session</option>
+                {filteredSessions.map((item) => (
+                  <option key={getSessionId(item)} value={getSessionId(item)}>
+                    {getSessionCenterName(item)} | Session #{getSessionId(item)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field-block">
+              <span>City</span>
+              <input value={siteCity} readOnly placeholder="Auto" />
+            </div>
+
+            <div className="field-block">
+              <span>Site ID</span>
+              <input value={siteId} readOnly placeholder="Auto" />
+            </div>
+
+            <div className="field-block">
+              <span>Hold ID</span>
+              <input value={holdId} readOnly placeholder="-" />
+            </div>
+
+            <div className="field-block">
+              <span>Reservation ID</span>
+              <input value={reservationId} readOnly placeholder="-" />
+            </div>
+          </div>
+
+          <div className="inline-actions">
+            <button className="subtle-btn" type="button" onClick={searchDates} disabled={loadingDates}>
+              {loadingDates ? 'Loading dates...' : 'Load available dates'}
+            </button>
+            <button className="subtle-btn" type="button" onClick={loadSessions} disabled={loadingSessions}>
+              {loadingSessions ? 'Loading sessions...' : 'Load test centers'}
+            </button>
+          </div>
+
+          {availableDates.length ? (
+            <div className="chips">
               {availableDates.map((item) => (
-                <option key={item} value={item} />
+                <button
+                  key={item}
+                  className={`chip${item === availableDate ? ' chip--active' : ''}`}
+                  type="button"
+                  onClick={() => setAvailableDate(item)}
+                >
+                  {formatDateLabel(item)}
+                </button>
               ))}
-            </datalist>
-          </label>
-
-          <label className="field">
-            <span>Category ID</span>
-            <input value={categoryId} onChange={(e) => setCategoryId(e.target.value)} placeholder="Category ID" />
-          </label>
-
-          <label className="field">
-            <span>Methodology</span>
-            <select value={methodology} onChange={(e) => setMethodology(e.target.value)}>
-              <option value="in_person">in_person</option>
-              <option value="remote">remote</option>
-            </select>
-          </label>
-
-          <label className="field">
-            <span>Language</span>
-            <select value={languageCode} onChange={(e) => setLanguageCode(e.target.value)}>
-              <option value="">Select language</option>
-              {selectedOccupation?.languageCodes.map((item) => (
-                <option key={item.code} value={item.code}>
-                  {item.englishName} {item.code ? `(${item.code})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        {selectedOccupation ? (
-          <div className="detail-box">
-            <h2>Occupation details from API</h2>
-            <div className="detail-grid">
-              <div>
-                <span>Name</span>
-                <strong>{selectedOccupation.name}</strong>
-              </div>
-              <div>
-                <span>Occupation ID</span>
-                <strong>{selectedOccupation.id || '-'}</strong>
-              </div>
-              <div>
-                <span>Category ID</span>
-                <strong>{selectedOccupation.categoryId || '-'}</strong>
-              </div>
-              <div>
-                <span>Methodology</span>
-                <strong>{selectedOccupation.methodology || '-'}</strong>
-              </div>
             </div>
-          </div>
-        ) : null}
-
-        <div className="button-row">
-          <button className="secondary-btn" type="button" onClick={searchDates} disabled={loadingDates}>
-            {loadingDates ? 'Loading dates...' : 'Load available dates'}
-          </button>
-          <button className="secondary-btn" type="button" onClick={loadSessions} disabled={loadingSessions}>
-            {loadingSessions ? 'Loading centers...' : 'Load test centers'}
-          </button>
-        </div>
-
-        {availableDates.length ? (
-          <div className="detail-box">
-            <h2>Available dates</h2>
-            <div className="date-grid">
-              {availableDates.map((item) => {
-                const active = item === availableDate;
-                const label = new Date(item).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: '2-digit',
-                  year: 'numeric',
-                });
-
-                return (
-                  <button
-                    key={item}
-                    className={`date-card${active ? ' date-card--active' : ''}`}
-                    type="button"
-                    onClick={() => setAvailableDate(item)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        {sessions.length ? (
-          <>
-            <div className="form-grid form-grid--secondary">
-              <label className="field field-wide">
-                <span>Test center</span>
-                <select value={selectedCenterId} onChange={(e) => setSelectedCenterId(e.target.value)}>
-                  <option value="">Select test center</option>
-                  {centerOptions.map((item) => (
-                    <option key={item.siteId} value={item.siteId}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field field-wide">
-                <span>Test center / session</span>
-                <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
-                  <option value="">Select session</option>
-                  {filteredSessions.map((item) => (
-                    <option key={getSessionId(item)} value={getSessionId(item)}>
-                      {getSessionCenterName(item)} | Session #{getSessionId(item)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="detail-grid detail-grid--session">
-              <div>
-                <span>site_id</span>
-                <strong>{siteId || '-'}</strong>
-              </div>
-              <div>
-                <span>site_city</span>
-                <strong>{siteCity || '-'}</strong>
-              </div>
-              <div>
-                <span>hold_id</span>
-                <strong>{holdId || '-'}</strong>
-              </div>
-              <div>
-                <span>reservation_id</span>
-                <strong>{reservationId || '-'}</strong>
-              </div>
-            </div>
-
-            <div className="button-row">
-              <button className="primary-btn" type="button" onClick={createHold} disabled={creatingHold}>
-                {creatingHold ? 'Creating hold...' : 'Create hold'}
-              </button>
-              <button className="primary-btn" type="button" onClick={bookReservation} disabled={booking}>
-                {booking ? 'Booking...' : 'Book'}
-              </button>
-            </div>
-          </>
-        ) : null}
-      </div>
+          ) : null}
+        </section>
+      </main>
 
       <style jsx>{`
-        .booking-shell {
+        .page-shell {
           min-height: 100vh;
-          padding: 24px;
-          background: #0e1730;
+          background: #f4f6f8;
+          color: #22324d;
         }
-        .booking-card {
-          width: min(920px, 100%);
-          margin: 0 auto;
-          padding: 24px;
-          border-radius: 20px;
-          background: linear-gradient(180deg, #16234a 0%, #111a34 100%);
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
-          color: #fff;
-        }
-        .booking-head {
+        .topbar {
+          min-height: 58px;
+          padding: 0 28px;
           display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #fff;
+          border-bottom: 1px solid #d9e0e7;
+        }
+        .topbar__brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #127d87;
+          font-weight: 700;
+        }
+        .brand-mark {
+          width: 40px;
+          height: 24px;
+          border-radius: 0 20px 20px 20px;
+          background: linear-gradient(135deg, #0b8c93 0%, #f49a20 100%);
+        }
+        .topbar__actions {
+          display: flex;
+          gap: 18px;
+        }
+        .topbar__actions a {
+          color: #637084;
+          text-decoration: none;
+          font-weight: 600;
+        }
+        .page-body {
+          padding: 44px 24px 60px;
+        }
+        .page-head {
+          display: flex;
+          align-items: center;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 20px;
+          margin-bottom: 18px;
+        }
+        .back-link {
+          color: #0b7f8a;
+          text-decoration: none;
+          font-size: 16px;
+          font-weight: 700;
         }
         .head-actions {
           display: flex;
           gap: 10px;
         }
-        .eyebrow {
-          margin: 0 0 8px;
-          font-size: 12px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: #8ec0c8;
-          font-weight: 700;
-        }
-        h1,
-        h2 {
-          margin: 0 0 8px;
-        }
-        .muted {
-          margin: 0;
-          color: #b9c2d6;
-        }
-        .status-card {
-          margin-bottom: 16px;
-          padding: 12px 14px;
-          border-radius: 12px;
-        }
-        .status-ok {
-          background: rgba(30, 132, 73, 0.2);
-          color: #a3e5bc;
-        }
-        .status-error {
-          background: rgba(165, 43, 43, 0.22);
-          color: #ffb6b6;
-        }
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-        }
-        .form-grid--secondary {
-          margin-top: 18px;
-        }
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .field-wide {
-          grid-column: 1 / -1;
-        }
-        .field span {
-          font-size: 13px;
-          font-weight: 700;
-        }
-        .field input,
-        .field select {
-          width: 100%;
-          min-height: 48px;
-          border-radius: 12px;
-          border: 1px solid #44506f;
-          background: #f7f9fd;
-          color: #182238;
-          padding: 0 14px;
-        }
-        .button-row {
-          display: flex;
-          gap: 12px;
-          margin-top: 18px;
-        }
+        .ghost-btn,
         .primary-btn,
-        .secondary-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 46px;
+        .subtle-btn {
+          min-height: 42px;
           padding: 0 18px;
-          border: 0;
-          border-radius: 12px;
-          text-decoration: none;
+          border-radius: 6px;
+          border: 1px solid #ccd5de;
+          background: #fff;
+          color: #1a607c;
           cursor: pointer;
           font-weight: 700;
         }
         .primary-btn {
-          background: #87c2c7;
+          background: #13828c;
+          border-color: #13828c;
           color: #fff;
         }
-        .secondary-btn {
-          background: #1f2a4b;
-          color: #fff;
+        .subtle-btn {
+          background: #f8fbfc;
         }
-        .detail-box {
-          margin-top: 20px;
-          padding: 18px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+        .booking-no {
+          margin-bottom: 18px;
+          color: #748095;
+          font-size: 17px;
+        }
+        .booking-no strong {
+          color: #22324d;
+          font-size: 18px;
+        }
+        .notice {
+          margin-bottom: 14px;
+          padding: 14px 16px;
+          border-radius: 10px;
+        }
+        .notice--ok {
+          background: #ebfaf4;
+          color: #1a7d4d;
+        }
+        .notice--error {
+          background: #fff1f1;
+          color: #b13d3d;
+        }
+        .detail-card {
+          background: #fff;
+          border: 1px solid #cfd7df;
+          border-radius: 14px;
+          overflow: hidden;
+        }
+        .detail-card__title {
+          padding: 14px 18px;
+          border-bottom: 1px solid #dbe2e9;
+          font-size: 18px;
+          font-weight: 800;
+          color: #111;
         }
         .detail-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px 26px;
+          padding: 22px 24px 12px;
         }
-        .date-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        .field-block {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .field-block--wide {
+          grid-column: span 3;
+        }
+        .field-block span {
+          color: #68758a;
+          font-size: 14px;
+        }
+        .field-block input,
+        .field-block select {
+          min-height: 44px;
+          border-radius: 6px;
+          border: 1px solid #cfd7df;
+          background: #fff;
+          color: #24324d;
+          padding: 0 12px;
+        }
+        .inline-actions {
+          display: flex;
           gap: 12px;
-          margin-top: 14px;
+          padding: 8px 24px 0;
         }
-        .date-card {
-          min-height: 48px;
-          border: 1px solid #44506f;
-          border-radius: 12px;
-          background: #f7f9fd;
-          color: #182238;
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 18px 24px 24px;
+        }
+        .chip {
+          min-height: 38px;
+          padding: 0 14px;
+          border-radius: 999px;
+          border: 1px solid #ccd5de;
+          background: #fff;
+          color: #24405b;
           cursor: pointer;
           font-weight: 700;
         }
-        .date-card--active {
-          background: #87c2c7;
-          border-color: #87c2c7;
+        .chip--active {
+          background: #13828c;
+          border-color: #13828c;
           color: #fff;
         }
-        .detail-grid div {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          padding: 14px;
-          border-radius: 14px;
-          background: rgba(6, 12, 26, 0.28);
-        }
-        .detail-grid span {
-          color: #b9c2d6;
-          font-size: 12px;
-          text-transform: uppercase;
-        }
-        .detail-grid strong {
-          word-break: break-word;
-        }
-        .detail-grid--session {
-          margin-top: 16px;
+        @media (max-width: 960px) {
+          .detail-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .field-block--wide {
+            grid-column: span 2;
+          }
         }
         @media (max-width: 720px) {
-          .booking-head,
-          .button-row,
-          .head-actions {
+          .topbar,
+          .page-head,
+          .head-actions,
+          .inline-actions {
             flex-direction: column;
+            align-items: stretch;
           }
-          .form-grid,
           .detail-grid {
             grid-template-columns: 1fr;
+          }
+          .field-block--wide {
+            grid-column: span 1;
           }
         }
       `}</style>
