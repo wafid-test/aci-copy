@@ -1,164 +1,260 @@
-import { Router } from 'express';
-import { prisma } from '../lib/prisma.js';
-import { decryptString } from '../lib/crypto.js';
-import { requireAuth } from '../lib/authMiddleware.js';
-import { svpRequest } from '../lib/svpClient.js';
+const express = require('express');
 
-const router = Router();
+const { svpRequest } = require('../lib/svpClient');
+const { requireAuth } = require('../middleware/auth');
 
-async function getSvpTokenFromSession(req){
-  const sid = req.user?.sid;
-  if (!sid) return null;
-  const session = await prisma.session.findUnique({ where: { id: String(sid) } });
-  if (!session?.svpAccessEnc) return null;
-  return decryptString(session.svpAccessEnc);
+const router = express.Router();
+
+router.use(requireAuth);
+
+function localeQuery(req) {
+  const locale = req.query.locale || 'en';
+  return { locale };
 }
 
-router.get('/permissions', requireAuth, async (req, res, next) => {
+function forwardQuery(req, extras = {}) {
+  return { ...req.query, ...extras };
+}
+
+router.get('/permissions', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    if (!token) return res.status(401).json({ message: 'No SVP token in session' });
-    const data = await svpRequest('/api/v1/individual_labor_space/permissions', { token });
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/permissions', {
+      query: localeQuery(req),
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/occupations', requireAuth, async (req, res, next) => {
+router.get('/occupations', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const qp = new URLSearchParams(req.query).toString();
-    const path = `/api/v1/individual_labor_space/occupations${qp ? `?${qp}` : ''}`;
-    const data = await svpRequest(path, { token });
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/occupations', {
+      query: forwardQuery(req, localeQuery(req)),
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/exam-constraints', requireAuth, async (req, res, next) => {
+router.get('/exam-constraints', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest('/api/v1/individual_labor_space/exam_constraints', { token });
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/exam_constraints', {
+      query: localeQuery(req),
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/available-dates', requireAuth, async (req, res, next) => {
+router.get('/available-dates', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    // Pass through common query params: category_id, start_at_date_from, etc.
-    const qp = new URLSearchParams(req.query).toString();
-    const path = `/api/v1/individual_labor_space/exam_sessions/available_dates${qp ? `?${qp}` : ''}`;
-    const data = await svpRequest(path, { token });
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/available_dates', {
+      query: forwardQuery(req, localeQuery(req)),
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/exam-sessions', requireAuth, async (req, res, next) => {
+router.get('/exam-sessions', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const qp = new URLSearchParams(req.query).toString();
-    const path = `/api/v1/individual_labor_space/exam_sessions${qp ? `?${qp}` : ''}`;
-    const data = await svpRequest(path, { token });
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/exam_sessions', {
+      query: forwardQuery(req, localeQuery(req)),
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/exam-session/:id', requireAuth, async (req, res, next) => {
+router.get('/exam-session/:id', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest(`/api/v1/individual_labor_space/exam_sessions/${encodeURIComponent(req.params.id)}`, { token });
+    const data = await svpRequest(
+      req,
+      'GET',
+      `/api/v1/individual_labor_space/exam_sessions/${req.params.id}`,
+      { query: localeQuery(req) }
+    );
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.post('/temporary-seats', requireAuth, async (req, res, next) => {
+router.get('/exam-reservations', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest('/api/v1/individual_labor_space/temporary_seats', { method:'POST', token, body: req.body });
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/exam_reservations', {
+      query: forwardQuery(req, localeQuery(req)),
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.post('/exam-reservations', requireAuth, async (req, res, next) => {
+router.get('/exam-reservations/:id', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest('/api/v1/individual_labor_space/exam_reservations', { method:'POST', token, body: req.body });
+    const data = await svpRequest(
+      req,
+      'GET',
+      `/api/v1/individual_labor_space/exam_reservations/${req.params.id}`,
+      { query: localeQuery(req) }
+    );
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/certificate-price', requireAuth, async (req, res, next) => {
+router.post('/temporary-seats', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest('/api/v1/individual_labor_space/certificate_price', { token });
+    const data = await svpRequest(req, 'POST', '/api/v1/individual_labor_space/temporary_seats', {
+      query: localeQuery(req),
+      body: req.body,
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/payments-validate-pending', requireAuth, async (req, res, next) => {
+router.post('/exam-reservations', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest('/api/v1/individual_labor_space/payments/validate_pending', { token });
+    const data = await svpRequest(req, 'POST', '/api/v1/individual_labor_space/exam_reservations', {
+      query: localeQuery(req),
+      body: req.body,
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.post('/payments', requireAuth, async (req, res, next) => {
+router.post('/reservation-credits/use', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest('/api/v1/individual_labor_space/payments', { method: 'POST', token, body: req.body });
+    const data = await svpRequest(
+      req,
+      'POST',
+      '/api/v1/individual_labor_space/reservation_credits/use',
+      {
+        query: localeQuery(req),
+        body: req.body,
+      }
+    );
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/payments/:id', requireAuth, async (req, res, next) => {
+router.get('/certificate-price', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const paymentId = encodeURIComponent(req.params.id);
-    const qp = new URLSearchParams(req.query).toString();
-    const path = `/api/v1/individual_labor_space/payments/${paymentId}${qp ? `?${qp}` : ''}`;
-    const data = await svpRequest(path, { token });
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/certificate_price', {
+      query: forwardQuery(req, localeQuery(req)),
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.put('/payments/:id', requireAuth, async (req, res, next) => {
+router.get('/payments-validate-pending', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const paymentId = encodeURIComponent(req.params.id);
-    const qp = new URLSearchParams(req.query).toString();
-    const path = `/api/v1/individual_labor_space/payments/${paymentId}${qp ? `?${qp}` : ''}`;
-    const data = await svpRequest(path, { method: 'PUT', token, body: req.body });
+    const data = await svpRequest(
+      req,
+      'GET',
+      '/api/v1/individual_labor_space/payments/validate_pending',
+      {
+        query: forwardQuery(req, localeQuery(req)),
+      }
+    );
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/feature-flags', requireAuth, async (req, res, next) => {
+router.post('/payments', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const data = await svpRequest('/api/v1/flipper/feature_flags', { token });
+    const data = await svpRequest(req, 'POST', '/api/v1/individual_labor_space/payments', {
+      query: localeQuery(req),
+      body: req.body,
+    });
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/notifications', requireAuth, async (req, res, next) => {
+router.get('/payments/:id', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const qp = new URLSearchParams(req.query).toString();
-    const path = `/api/v1/individual_labor_space/notifications${qp ? `?${qp}` : ''}`;
-    const data = await svpRequest(path, { token });
+    const data = await svpRequest(
+      req,
+      'GET',
+      `/api/v1/individual_labor_space/payments/${req.params.id}`,
+      { query: localeQuery(req) }
+    );
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/user-balance/:svpUserId', requireAuth, async (req, res, next) => {
+router.put('/payments/:id', async (req, res, next) => {
   try {
-    const token = await getSvpTokenFromSession(req);
-    const svpUserId = req.params.svpUserId;
-    const qp = new URLSearchParams(req.query).toString();
-    const path = `/api/v1/users/${encodeURIComponent(svpUserId)}/balance${qp ? `?${qp}` : ''}`;
-    const data = await svpRequest(path, { token });
+    const data = await svpRequest(
+      req,
+      'PUT',
+      `/api/v1/individual_labor_space/payments/${req.params.id}`,
+      {
+        query: localeQuery(req),
+        body: req.body,
+      }
+    );
     res.json(data);
-  } catch (e) { next(e); }
+  } catch (error) {
+    next(error);
+  }
 });
 
-export const svpRouter = router;
+router.get('/feature-flags', async (req, res, next) => {
+  try {
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/feature_flags', {
+      query: localeQuery(req),
+    });
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/notifications', async (req, res, next) => {
+  try {
+    const data = await svpRequest(req, 'GET', '/api/v1/individual_labor_space/notifications', {
+      query: forwardQuery(req, localeQuery(req)),
+    });
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/user-balance/:svpUserId', async (req, res, next) => {
+  try {
+    const data = await svpRequest(
+      req,
+      'GET',
+      `/api/v1/individual_labor_space/user_balance/${req.params.svpUserId}`,
+      { query: localeQuery(req) }
+    );
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+module.exports = router;

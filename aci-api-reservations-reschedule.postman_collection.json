@@ -1,0 +1,230 @@
+{
+  "info": {
+    "_postman_id": "46f47c88-5f1a-4af2-a980-12a90734db80",
+    "name": "ACI API Reservations Reschedule Flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Production collection for listing booked exam reservations, loading reservation details, and starting a reschedule flow through the Railway backend proxy."
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{password}}\",\n  \"otpMethod\": \"{{otpMethod}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "OTP Verify",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "const accessToken = json.accessToken || json.access_token || json.data?.accessToken || json.data?.access_token;",
+              "if (accessToken) {",
+              "  pm.collectionVariables.set('accessToken', accessToken);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{login}}\",\n  \"password\": \"{{password}}\",\n  \"otpAttempt\": \"{{otpAttempt}}\",\n  \"otpMethod\": \"{{otpMethod}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/otp-verify",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "otp-verify"
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Exam Reservations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/svp/exam-reservations?locale=en",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "svp",
+            "exam-reservations"
+          ],
+          "query": [
+            {
+              "key": "locale",
+              "value": "en"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Reservation Details",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/svp/exam-reservations/{{reservationId}}?locale=en",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "svp",
+            "exam-reservations",
+            "{{reservationId}}"
+          ],
+          "query": [
+            {
+              "key": "locale",
+              "value": "en"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Start Reschedule Credit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"methodology_type\": \"{{methodologyType}}\",\n  \"reservation_id\": {{reservationId}},\n  \"occupation_id\": {{occupationId}}\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/svp/reservation-credits/use?locale=en",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "svp",
+            "reservation-credits",
+            "use"
+          ],
+          "query": [
+            {
+              "key": "locale",
+              "value": "en"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://aci-api-production.up.railway.app"
+    },
+    {
+      "key": "login",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "otpMethod",
+      "value": "email"
+    },
+    {
+      "key": "otpAttempt",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "reservationId",
+      "value": ""
+    },
+    {
+      "key": "occupationId",
+      "value": ""
+    },
+    {
+      "key": "methodologyType",
+      "value": "in_person"
+    }
+  ]
+}
