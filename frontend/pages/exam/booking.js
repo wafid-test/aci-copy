@@ -302,6 +302,10 @@ export default function ExamBooking() {
     ),
     [paymentRaw, paymentMethod, reservationDetails]
   );
+  const selectedSession = useMemo(
+    () => sessionList.find((session) => String(getSessionId(session)) === String(selectedSessionId)) || null,
+    [sessionList, selectedSessionId]
+  );
 
   useEffect(() => {
     if (!selectedOccupation) return;
@@ -315,7 +319,6 @@ export default function ExamBooking() {
   }, [selectedOccupation, languageOptions, languageCode]);
 
   useEffect(() => {
-    const selectedSession = sessionList.find((session) => String(getSessionId(session)) === String(selectedSessionId));
     if (!selectedSession) return;
     setSiteId(String(getSessionSiteId(selectedSession) || ''));
     setSiteCity(String(getSessionSiteCity(selectedSession) || ''));
@@ -326,272 +329,161 @@ export default function ExamBooking() {
   }, [sessionList, selectedSessionId, city]);
 
   return (
-    <div className="app-shell">
-      <div className="app-panel app-panel-wide">
-        <div className="page-header">
+    <div className="booking-shell">
+      <div className="booking-panel">
+        <div className="booking-header">
           <div>
-            <p className="eyebrow">Exam workflow</p>
-            <h1>Create new booking</h1>
-            <p className="page-copy">Load live sessions from the real API, choose the real test center name, and complete the reservation flow.</p>
+            <h1>Create New Booking</h1>
+            <p>{out || 'Using live SVP session and real API data.'}</p>
           </div>
-          <div className="page-actions">
-            <Link className="text-link" href="/dashboard">Back to dashboard</Link>
-          </div>
+          <Link className="text-link booking-back" href="/dashboard">Back</Link>
         </div>
 
-        <div className="section-card">
-          <div className="section-title-row">
-            <h2>1. Search available dates</h2>
-            <p className="section-copy">Queries <code>/api/svp/available-dates</code> and fills the first valid date automatically.</p>
-          </div>
-          <form className="form-grid" onSubmit={searchAvailableDates}>
-            <div className="field-group">
-              <label>Category ID</label>
-              <input value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
-            </div>
-            <div className="field-group">
-              <label>Start Date From</label>
-              <input value={startDateFrom} onChange={(e) => setStartDateFrom(e.target.value)} placeholder="YYYY-MM-DD" />
-            </div>
-            <div className="field-group">
-              <label>Per Page</label>
+        <div className="booking-block">
+          <label>Occupation *</label>
+          <div className="booking-grid booking-grid-three">
+            <div className="booking-field">
+              <label>per_page</label>
               <input value={perPage} onChange={(e) => setPerPage(e.target.value)} />
             </div>
-            <div className="field-group">
-              <label>Available Seats</label>
-              <input value={availableSeats} onChange={(e) => setAvailableSeats(e.target.value)} />
+            <div className="booking-field">
+              <label>page</label>
+              <input value="1" readOnly />
             </div>
-            <div className="field-group">
-              <label>Status</label>
-              <input value={status} onChange={(e) => setStatus(e.target.value)} />
-            </div>
-            <div className="form-actions form-actions-full">
-              <button className="primary-button" type="submit">Search dates</button>
-            </div>
-          </form>
-        </div>
-
-        <div className="section-card">
-          <div className="section-title-row">
-            <h2>2. Load test centers</h2>
-            <p className="section-copy">Choose a city and date, then select the real <code>test_center_name</code> returned by the API.</p>
-          </div>
-          <div className="form-grid">
-            <div className="field-group">
-              <label>City</label>
-              <input value={city} onChange={(e) => setCity(e.target.value)} />
-            </div>
-            <div className="field-group">
-              <label>Exam Date</label>
-              <input value={examDate} onChange={(e) => setExamDate(e.target.value)} placeholder="YYYY-MM-DD" />
-            </div>
-            <div className="form-actions form-actions-full">
-              <button className="primary-button" type="button" onClick={loadExamSessions}>Load sessions</button>
+            <div className="booking-field">
+              <label>name</label>
+              <input value="" readOnly placeholder="optional" />
             </div>
           </div>
-
-          {sessionList.length > 0 && (
-            <div className="field-group field-group-spaced">
-              <label>Test Center</label>
-              <select value={selectedSessionId} onChange={(e) => setSelectedSessionId(e.target.value)}>
-                {sessionList.map((session) => (
-                  <option key={getSessionId(session)} value={getSessionId(session)}>
-                    {getSessionLabel(session)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <button className="booking-load" type="button" onClick={loadOccupations}>Load Occupations</button>
+          {occupationList.length > 0 && (
+            <select value={occupationId} onChange={(e) => setOccupationId(e.target.value)}>
+              {occupationList.map((occupation) => (
+                <option key={occupation.id} value={occupation.id}>
+                  {occupation.name} (#{occupation.id})
+                </option>
+              ))}
+            </select>
           )}
         </div>
 
-        <div className="section-card">
-          <div className="section-title-row">
-            <h2>3. Reservation details</h2>
-            <p className="section-copy">Language uses the readable option label, while the backend still receives the correct code.</p>
+        <div className="booking-grid">
+          <div className="booking-field">
+            <label>City *</label>
+            <input value={city} onChange={(e) => setCity(e.target.value)} />
           </div>
-
-          <div className="form-grid">
-            <div className="field-group">
-              <label>Methodology</label>
-              <select value={methodology} onChange={(e) => setMethodology(e.target.value)}>
-                <option value="in_person">in_person</option>
-                <option value="remote">remote</option>
-              </select>
-            </div>
-            <div className="field-group">
-              <label>Language</label>
-              {languageOptions.length > 0 ? (
-                <select value={languageCode} onChange={(e) => setLanguageCode(e.target.value)}>
-                  {languageOptions.map((option) => (
-                    <option key={option.code} value={option.code}>
-                      {option.english_name || option.language_code || option.code}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input value={languageCode} onChange={(e) => setLanguageCode(e.target.value)} placeholder="Language code" />
-              )}
-            </div>
-          </div>
-
-          <div className="form-grid">
-            <div className="field-group">
-              <label>Occupation</label>
-              <input value={occupationId} onChange={(e) => setOccupationId(e.target.value)} placeholder="Occupation ID" />
-              <button className="secondary-button inline-action" onClick={loadOccupations} type="button">Load occupations</button>
-              {occupationList.length > 0 && (
-                <select value={occupationId} onChange={(e) => setOccupationId(e.target.value)}>
-                  {occupationList.map((occupation) => (
-                    <option key={occupation.id} value={occupation.id}>
-                      {occupation.name ? `${occupation.name}` : `Occupation`} (#{occupation.id})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            <div className="field-group">
-              <label>Selected Session ID</label>
-              <input value={selectedSessionId} readOnly />
-              <label>Test Center Name</label>
-              <input
-                value={
-                  sessionList.find((session) => String(getSessionId(session)) === String(selectedSessionId))?.test_center_name ||
-                  sessionList.find((session) => String(getSessionId(session)) === String(selectedSessionId))?.test_center?.name ||
-                  ''
-                }
-                readOnly
-              />
-              <label>Site ID</label>
-              <input value={siteId} readOnly />
-              <label>Site City</label>
-              <input value={siteCity} readOnly />
-            </div>
-          </div>
-
-          <div className="summary-strip">
-            <span>Available dates: <strong>{availableDatesRaw ? 'loaded' : 'not loaded'}</strong></span>
-            <span>Hold: <strong>{holdRaw ? 'loaded' : 'not loaded'}</strong></span>
-            <span>Reservation: <strong>{reservationRaw ? 'loaded' : 'not loaded'}</strong></span>
-          </div>
-
-          <div className="action-grid action-grid-compact">
-            <button className="secondary-button" onClick={createHold} type="button">Create temporary seat</button>
-            <button className="primary-button" onClick={bookReservation} type="button">Book reservation</button>
+          <div className="booking-field">
+            <label>Available Date *</label>
+            <input value={examDate} onChange={(e) => setExamDate(e.target.value)} placeholder="YYYY-MM-DD" />
           </div>
         </div>
 
-        {reservationDetails ? (
-          <div className="section-card">
-            <div className="section-title-row">
-              <h2>4. Reservation result</h2>
-              <p className="section-copy">Clean summary from <code>/api/svp/exam-reservations</code>.</p>
-            </div>
+        <div className="booking-grid">
+          <div className="booking-field">
+            <label>Category Id</label>
+            <input value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
+          </div>
+          <div className="booking-field">
+            <label>Methodology</label>
+            <select value={methodology} onChange={(e) => setMethodology(e.target.value)}>
+              <option value="in_person">in_person</option>
+              <option value="remote">remote</option>
+            </select>
+          </div>
+        </div>
 
+        <div className="booking-grid">
+          <div className="booking-field">
+            <label>site_id (auto)</label>
+            <input value={siteId} readOnly />
+          </div>
+          <div className="booking-field">
+            <label>site_city (auto)</label>
+            <input value={siteCity} readOnly />
+          </div>
+        </div>
+
+        <button className="booking-load" type="button" onClick={searchAvailableDates}>Search Available Dates</button>
+        <button className="booking-load" type="button" onClick={loadExamSessions}>Load Test Sessions</button>
+
+        {sessionList.length > 0 && (
+          <div className="booking-field">
+            <label>Test Center / Session *</label>
+            <select value={selectedSessionId} onChange={(e) => setSelectedSessionId(e.target.value)}>
+              {sessionList.map((session) => (
+                <option key={getSessionId(session)} value={getSessionId(session)}>
+                  {getSessionLabel(session)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="booking-field">
+          <label>Language Code</label>
+          {languageOptions.length > 0 ? (
+            <select value={languageCode} onChange={(e) => setLanguageCode(e.target.value)}>
+              {languageOptions.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.english_name || option.code}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input value={languageCode} onChange={(e) => setLanguageCode(e.target.value)} />
+          )}
+        </div>
+
+        <div className="booking-actions">
+          <button className="booking-action" type="button" onClick={createHold}>Create Hold</button>
+          <button className="booking-action" type="button" onClick={bookReservation}>Book</button>
+        </div>
+
+        {reservationDetails ? (
+          <div className="booking-result">
+            <h3>Reservation Details</h3>
             <div className="detail-grid">
-              <div className="detail-item">
-                <span>Reservation ID</span>
-                <strong>{reservationDetails.id || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Status</span>
-                <strong>{reservationDetails.status || 'Created'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Exam Session ID</span>
-                <strong>{reservationDetails.examSessionId || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Occupation ID</span>
-                <strong>{reservationDetails.occupationId || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Language Code</span>
-                <strong>{reservationDetails.languageCode || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Methodology</span>
-                <strong>{reservationDetails.methodology || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Site ID</span>
-                <strong>{reservationDetails.siteId || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Site City</span>
-                <strong>{reservationDetails.siteCity || 'N/A'}</strong>
-              </div>
+              <div className="detail-item"><span>Reservation ID</span><strong>{reservationDetails.id || 'N/A'}</strong></div>
+              <div className="detail-item"><span>Status</span><strong>{reservationDetails.status || 'Created'}</strong></div>
+              <div className="detail-item"><span>Exam Session ID</span><strong>{reservationDetails.examSessionId || 'N/A'}</strong></div>
+              <div className="detail-item"><span>Occupation ID</span><strong>{reservationDetails.occupationId || 'N/A'}</strong></div>
+              <div className="detail-item"><span>Language Code</span><strong>{reservationDetails.languageCode || 'N/A'}</strong></div>
+              <div className="detail-item"><span>Site ID</span><strong>{reservationDetails.siteId || 'N/A'}</strong></div>
             </div>
           </div>
         ) : null}
 
         {reservationDetails ? (
-          <div className="section-card">
-            <div className="section-title-row">
-              <h2>5. Payment</h2>
-              <p className="section-copy">Create and finalize payment for the current reservation from the same page.</p>
-            </div>
-
-            <div className="form-grid">
-              <div className="field-group">
+          <>
+            <div className="booking-grid">
+              <div className="booking-field">
                 <label>Payment Method</label>
                 <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                   <option value="card">card</option>
                 </select>
               </div>
-              <div className="field-group">
-                <label>Payment ID</label>
-                <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} placeholder="Auto after create payment" />
+              <div className="booking-field">
+                <label>payment_id</label>
+                <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} placeholder="auto after create payment" />
               </div>
             </div>
 
-            <div className="action-grid action-grid-compact">
-              <button className="secondary-button" type="button" onClick={createPayment}>Create payment</button>
-              <button className="primary-button" type="button" onClick={finalizePayment}>Finalize payment</button>
+            <div className="booking-actions">
+              <button className="booking-action" type="button" onClick={createPayment}>Create Payment</button>
+              <button className="booking-action" type="button" onClick={finalizePayment}>Finalize Payment</button>
             </div>
-          </div>
+          </>
         ) : null}
 
         {paymentDetails ? (
-          <div className="section-card">
-            <div className="section-title-row">
-              <h2>6. Payment result</h2>
-              <p className="section-copy">Clean summary from <code>/api/svp/payments</code>.</p>
-            </div>
-
+          <div className="booking-result">
+            <h3>Payment Details</h3>
             <div className="detail-grid">
-              <div className="detail-item">
-                <span>Payment ID</span>
-                <strong>{paymentDetails.id || paymentId || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Status</span>
-                <strong>{paymentDetails.status || 'Created'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Payment Method</span>
-                <strong>{paymentDetails.paymentMethod || paymentMethod || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Payable Type</span>
-                <strong>{paymentDetails.payableType || 'Reservation'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Payable ID</span>
-                <strong>{paymentDetails.payableId || reservationDetails?.id || 'N/A'}</strong>
-              </div>
-              <div className="detail-item">
-                <span>Amount</span>
-                <strong>{paymentDetails.amount ?? 'N/A'}</strong>
-              </div>
+              <div className="detail-item"><span>Payment ID</span><strong>{paymentDetails.id || paymentId || 'N/A'}</strong></div>
+              <div className="detail-item"><span>Status</span><strong>{paymentDetails.status || 'Created'}</strong></div>
+              <div className="detail-item"><span>Method</span><strong>{paymentDetails.paymentMethod || paymentMethod}</strong></div>
+              <div className="detail-item"><span>Payable ID</span><strong>{paymentDetails.payableId || reservationDetails?.id || 'N/A'}</strong></div>
             </div>
-          </div>
-        ) : null}
-
-        {out ? (
-          <div className="info-banner">
-            <span>Status</span>
-            <strong>{out}</strong>
           </div>
         ) : null}
       </div>
