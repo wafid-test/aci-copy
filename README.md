@@ -54,7 +54,7 @@ Backend on Railway:
    - `NODE_ENV=production`
    - `APP_NAME=SVP Backend API`
    - `PORT=4000` (Railway can also inject its own port)
-   - `CORS_ORIGINS=https://your-frontend-domain.vercel.app`
+   - `CORS_ORIGINS=https://svp-book.vercel.app,https://svp-book-abdur-razzak-s-projects.vercel.app`
    - `JWT_ACCESS_SECRET=...`
    - `JWT_REFRESH_SECRET=...`
    - `ACCESS_TOKEN_TTL_SECONDS=900`
@@ -73,7 +73,7 @@ Frontend on Vercel:
 1. Import this repo into Vercel and set **Root Directory** to `frontend`.
 2. Vercel uses `frontend/vercel.json` and builds Next.js.
 3. Add env var in Vercel:
-   - `NEXT_PUBLIC_BACKEND_URL=https://your-railway-backend-url`
+   - `NEXT_PUBLIC_BACKEND_URL=https://aci-api-production.up.railway.app`
 4. Deploy and open your live website URL from Vercel.
 
 ### Make GitHub Repo Public
