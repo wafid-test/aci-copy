@@ -24,6 +24,10 @@ function extractReservationId(json) {
   return json?.reservation?.id || json?.reservation_id || json?.id || json?.data?.reservation?.id || json?.data?.reservation_id || json?.data?.id || null;
 }
 
+function extractPaymentId(json) {
+  return json?.payment?.id || json?.payment_id || json?.id || json?.data?.payment?.id || json?.data?.payment_id || json?.data?.id || null;
+}
+
 function getReservationDetails(json, fallback = {}) {
   const reservation = json?.reservation || json?.data?.reservation || json?.data || json || {};
   return {
@@ -35,6 +39,18 @@ function getReservationDetails(json, fallback = {}) {
     siteCity: reservation?.site_city ?? fallback.siteCity ?? null,
     methodology: reservation?.methodology ?? fallback.methodology ?? null,
     status: reservation?.status || json?.status || json?.data?.status || null,
+  };
+}
+
+function getPaymentDetails(json, fallback = {}) {
+  const payment = json?.payment || json?.data?.payment || json?.data || json || {};
+  return {
+    id: extractPaymentId(json),
+    status: payment?.status || json?.status || json?.data?.status || fallback.status || null,
+    paymentMethod: payment?.payment_method || fallback.paymentMethod || null,
+    payableType: payment?.payable_type || fallback.payableType || null,
+    payableId: payment?.payable_id || fallback.payableId || null,
+    amount: payment?.amount ?? fallback.amount ?? null,
   };
 }
 
@@ -77,6 +93,9 @@ export default function ExamBooking() {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [holdRaw, setHoldRaw] = useState(null);
   const [reservationRaw, setReservationRaw] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentId, setPaymentId] = useState('');
+  const [paymentRaw, setPaymentRaw] = useState(null);
   const [occupationsRaw, setOccupationsRaw] = useState(null);
 
   useEffect(() => {
@@ -203,6 +222,52 @@ export default function ExamBooking() {
     }
   }
 
+  async function createPayment() {
+    const reservationId = extractReservationId(reservationRaw);
+    if (!reservationId) {
+      setOut('Create reservation first.');
+      return;
+    }
+
+    setOut('Creating payment...');
+    try {
+      const res = await api('/api/svp/payments', {
+        method: 'POST',
+        body: {
+          payment: {
+            payment_method: paymentMethod,
+            payable_type: 'Reservation',
+            payable_id: Number(reservationId),
+          },
+        },
+      });
+      setPaymentRaw(res);
+      const pid = extractPaymentId(res);
+      if (pid) setPaymentId(String(pid));
+      setOut('Payment created successfully.');
+    } catch (e) {
+      setOut(e?.data?.message || e?.message || 'Payment create request failed.');
+    }
+  }
+
+  async function finalizePayment() {
+    if (!paymentId) {
+      setOut('Payment ID is required.');
+      return;
+    }
+
+    setOut('Finalizing payment...');
+    try {
+      const res = await api(`/api/svp/payments/${encodeURIComponent(paymentId)}`, {
+        method: 'PUT',
+      });
+      setPaymentRaw(res);
+      setOut('Payment finalized successfully.');
+    } catch (e) {
+      setOut(e?.data?.message || e?.message || 'Payment finalize request failed.');
+    }
+  }
+
   const sessionList = useMemo(() => pickArray(sessionsRaw) || [], [sessionsRaw]);
   const occupationList = useMemo(() => pickArray(occupationsRaw) || [], [occupationsRaw]);
   const selectedOccupation = useMemo(
@@ -224,6 +289,18 @@ export default function ExamBooking() {
         : null
     ),
     [reservationRaw, selectedSessionId, occupationId, languageCode, siteId, siteCity, methodology]
+  );
+  const paymentDetails = useMemo(
+    () => (
+      paymentRaw
+        ? getPaymentDetails(paymentRaw, {
+            paymentMethod,
+            payableType: 'Reservation',
+            payableId: reservationDetails?.id || null,
+          })
+        : null
+    ),
+    [paymentRaw, paymentMethod, reservationDetails]
   );
 
   useEffect(() => {
@@ -443,6 +520,69 @@ export default function ExamBooking() {
               <div className="detail-item">
                 <span>Site City</span>
                 <strong>{reservationDetails.siteCity || 'N/A'}</strong>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {reservationDetails ? (
+          <div className="section-card">
+            <div className="section-title-row">
+              <h2>5. Payment</h2>
+              <p className="section-copy">Create and finalize payment for the current reservation from the same page.</p>
+            </div>
+
+            <div className="form-grid">
+              <div className="field-group">
+                <label>Payment Method</label>
+                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                  <option value="card">card</option>
+                </select>
+              </div>
+              <div className="field-group">
+                <label>Payment ID</label>
+                <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} placeholder="Auto after create payment" />
+              </div>
+            </div>
+
+            <div className="action-grid action-grid-compact">
+              <button className="secondary-button" type="button" onClick={createPayment}>Create payment</button>
+              <button className="primary-button" type="button" onClick={finalizePayment}>Finalize payment</button>
+            </div>
+          </div>
+        ) : null}
+
+        {paymentDetails ? (
+          <div className="section-card">
+            <div className="section-title-row">
+              <h2>6. Payment result</h2>
+              <p className="section-copy">Clean summary from <code>/api/svp/payments</code>.</p>
+            </div>
+
+            <div className="detail-grid">
+              <div className="detail-item">
+                <span>Payment ID</span>
+                <strong>{paymentDetails.id || paymentId || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Status</span>
+                <strong>{paymentDetails.status || 'Created'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Payment Method</span>
+                <strong>{paymentDetails.paymentMethod || paymentMethod || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Payable Type</span>
+                <strong>{paymentDetails.payableType || 'Reservation'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Payable ID</span>
+                <strong>{paymentDetails.payableId || reservationDetails?.id || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Amount</span>
+                <strong>{paymentDetails.amount ?? 'N/A'}</strong>
               </div>
             </div>
           </div>

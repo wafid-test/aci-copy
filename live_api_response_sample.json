@@ -63,5 +63,15 @@
       "payable_type": "Reservation",
       "payable_id": 1670176
     }
+  },
+  "payment_create_response": {
+    "payment": {
+      "id": 987654,
+      "status": "pending",
+      "payment_method": "card",
+      "payable_type": "Reservation",
+      "payable_id": 1670176,
+      "amount": 1000
+    }
   }
 }
