@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import CreateBookingModal from '../components/CreateBookingModal';
 import { api } from '../lib/api';
 
 export default function Dashboard() {
-  const [openBooking, setOpenBooking] = useState(false);
   const [out, setOut] = useState('');
   const [me, setMe] = useState(null);
   const router = useRouter();
@@ -67,7 +65,7 @@ export default function Dashboard() {
           </div>
 
           <div className="action-grid">
-            <button className="primary-button" onClick={() => setOpenBooking(true)}>Create new booking</button>
+            <button className="primary-button" onClick={() => router.push('/exam/booking')}>Create new booking</button>
             <button className="secondary-button" onClick={() => call('/api/me')}>Load profile</button>
             <button className="secondary-button" onClick={() => call('/api/svp/permissions')}>Permissions</button>
             <button className="secondary-button" onClick={() => call('/api/svp/occupations')}>Occupations</button>
@@ -81,8 +79,6 @@ export default function Dashboard() {
           </div>
           <pre className="output-panel">{out || 'No requests run yet.'}</pre>
         </div>
-
-        <CreateBookingModal open={openBooking} onClose={() => setOpenBooking(false)} />
       </div>
     </div>
   );
