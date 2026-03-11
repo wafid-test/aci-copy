@@ -124,6 +124,39 @@ function formatDateLabel(value) {
   return parsed.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 }
 
+function buildCalendarDays(activeMonth, availableDates) {
+  const monthDate = activeMonth ? new Date(`${activeMonth}-01T00:00:00`) : new Date();
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const leading = (firstDay.getDay() + 6) % 7;
+  const total = lastDay.getDate();
+  const availableSet = new Set(availableDates);
+  const items = [];
+
+  for (let index = 0; index < leading; index += 1) {
+    items.push({ key: `empty-start-${index}`, empty: true });
+  }
+
+  for (let day = 1; day <= total; day += 1) {
+    const current = new Date(year, month, day);
+    const iso = current.toISOString().slice(0, 10);
+    items.push({
+      key: iso,
+      iso,
+      day,
+      available: availableSet.has(iso),
+    });
+  }
+
+  while (items.length % 7 !== 0) {
+    items.push({ key: `empty-end-${items.length}`, empty: true });
+  }
+
+  return items;
+}
+
 export default function BookingPage() {
   const router = useRouter();
   const [occupations, setOccupations] = useState([]);
@@ -141,6 +174,7 @@ export default function BookingPage() {
   const [languageCode, setLanguageCode] = useState('');
   const [holdId, setHoldId] = useState('');
   const [reservationId, setReservationId] = useState('');
+  const [calendarMonth, setCalendarMonth] = useState('');
   const [loadingOccupations, setLoadingOccupations] = useState(false);
   const [loadingDates, setLoadingDates] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
@@ -173,6 +207,11 @@ export default function BookingPage() {
     [filteredSessions, sessionId]
   );
 
+  const calendarDays = useMemo(
+    () => buildCalendarDays(calendarMonth || availableDate || normalizeDateValue(new Date().toISOString()), availableDates),
+    [calendarMonth, availableDate, availableDates]
+  );
+
   useEffect(() => {
     async function loadOccupations() {
       setLoadingOccupations(true);
@@ -203,6 +242,7 @@ export default function BookingPage() {
     if (router.query.siteCity) setSelectedCity(String(router.query.siteCity));
     if (router.query.siteCity) setSiteCity(String(router.query.siteCity));
     if (router.query.examDate) setAvailableDate(normalizeDateValue(String(router.query.examDate)));
+    if (router.query.examDate) setCalendarMonth(String(router.query.examDate).slice(0, 7));
     if (router.query.reschedule === '1') {
       setStatus('Reschedule mode active. Select a new city, center, and session.');
     }
@@ -249,6 +289,7 @@ export default function BookingPage() {
         if (!active) return;
         setAvailableDates(dates);
         setAvailableDate((prev) => (prev && dates.includes(prev) ? prev : dates[0] || ''));
+        setCalendarMonth((prev) => prev || (dates[0] ? dates[0].slice(0, 7) : normalizeDateValue(new Date().toISOString()).slice(0, 7)));
       } catch (err) {
         if (!active) return;
         setAvailableDates([]);
@@ -488,7 +529,14 @@ export default function BookingPage() {
 
             <div className="field-block">
               <span>Available Date</span>
-              <input type="date" value={availableDate} onChange={(e) => setAvailableDate(e.target.value)} />
+              <input
+                type="date"
+                value={availableDate}
+                onChange={(e) => {
+                  setAvailableDate(e.target.value);
+                  setCalendarMonth(e.target.value ? e.target.value.slice(0, 7) : calendarMonth);
+                }}
+              />
             </div>
 
             <div className="field-block">
@@ -572,17 +620,65 @@ export default function BookingPage() {
           </div>
 
           {availableDates.length ? (
-            <div className="chips">
-              {availableDates.map((item) => (
-                <button
-                  key={item}
-                  className={`chip${item === availableDate ? ' chip--active' : ''}`}
-                  type="button"
-                  onClick={() => setAvailableDate(item)}
-                >
-                  {formatDateLabel(item)}
-                </button>
-              ))}
+            <div className="calendar-wrap">
+              <div className="calendar-head">
+                <strong>
+                  {new Date(`${calendarMonth || availableDates[0].slice(0, 7)}-01T00:00:00`).toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </strong>
+                <input
+                  className="calendar-month"
+                  type="month"
+                  value={calendarMonth || availableDates[0].slice(0, 7)}
+                  onChange={(e) => setCalendarMonth(e.target.value)}
+                />
+              </div>
+              <div className="calendar-weekdays">
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+                <span>Sun</span>
+              </div>
+              <div className="calendar-grid">
+                {calendarDays.map((item) =>
+                  item.empty ? (
+                    <div key={item.key} className="calendar-cell calendar-cell--empty" />
+                  ) : (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`calendar-cell${item.available ? ' calendar-cell--available' : ''}${
+                        item.iso === availableDate ? ' calendar-cell--active' : ''
+                      }`}
+                      onClick={() => item.available && setAvailableDate(item.iso)}
+                      disabled={!item.available}
+                    >
+                      <span>{item.day}</span>
+                      {item.available ? <small>Seat</small> : <small>-</small>}
+                    </button>
+                  )
+                )}
+              </div>
+              <div className="chips">
+                {availableDates.map((item) => (
+                  <button
+                    key={item}
+                    className={`chip${item === availableDate ? ' chip--active' : ''}`}
+                    type="button"
+                    onClick={() => {
+                      setAvailableDate(item);
+                      setCalendarMonth(item.slice(0, 7));
+                    }}
+                  >
+                    {formatDateLabel(item)}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
         </section>
@@ -732,7 +828,72 @@ export default function BookingPage() {
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
+          padding: 16px 0 0;
+        }
+        .calendar-wrap {
           padding: 0 24px 24px;
+        }
+        .calendar-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding-top: 8px;
+        }
+        .calendar-month {
+          min-height: 38px;
+          padding: 0 10px;
+          border-radius: 6px;
+          border: 1px solid #ccd5de;
+        }
+        .calendar-weekdays {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 14px;
+          color: #6c788b;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .calendar-grid {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .calendar-cell {
+          min-height: 68px;
+          border-radius: 10px;
+          border: 1px solid #d5dde6;
+          background: #f6f8fa;
+          color: #7f8a9c;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: space-between;
+          padding: 10px;
+          cursor: not-allowed;
+        }
+        .calendar-cell span {
+          font-weight: 700;
+        }
+        .calendar-cell small {
+          font-size: 11px;
+        }
+        .calendar-cell--empty {
+          border: 0;
+          background: transparent;
+        }
+        .calendar-cell--available {
+          background: #ebfaf4;
+          border-color: #a8d9bf;
+          color: #156d44;
+          cursor: pointer;
+        }
+        .calendar-cell--active {
+          background: #13828c;
+          border-color: #13828c;
+          color: #fff;
         }
         .chip {
           min-height: 38px;
@@ -766,6 +927,10 @@ export default function BookingPage() {
           }
           .detail-grid {
             grid-template-columns: 1fr;
+          }
+          .calendar-weekdays,
+          .calendar-grid {
+            grid-template-columns: repeat(7, minmax(32px, 1fr));
           }
           .field-block--wide {
             grid-column: span 1;
