@@ -107,7 +107,7 @@ function buildCenterOptions(items) {
 
 function buildCityOptions(items) {
   const fromSessions = items.map((item) => String(getSessionSiteCity(item) || '').trim()).filter(Boolean);
-  return Array.from(new Set([...DEFAULT_CITY_OPTIONS, ...fromSessions]));
+  return Array.from(new Set([...DEFAULT_CITY_OPTIONS, ...fromSessions])).sort((a, b) => a.localeCompare(b));
 }
 
 function buildCalendarDays(activeMonth, availableDates) {
@@ -234,6 +234,21 @@ export default function BookingPage() {
     setHoldId('');
     setReservationId('');
   }, [selectedOccupationId]);
+
+  useEffect(() => {
+    setAvailableDate('');
+    setAvailableDates([]);
+    setSessions([]);
+    setSelectedCenterId('');
+    setSessionId('');
+    setSiteId('');
+    setSiteCity(selectedCity || '');
+    setHoldId('');
+    setReservationId('');
+    if (selectedCity) {
+      setStatus(`City selected: ${selectedCity}. Loading available dates from live API.`);
+    }
+  }, [selectedCity]);
 
   useEffect(() => {
     let active = true;
