@@ -27,7 +27,7 @@
     { "key": "languageCode", "value": "EMCEE" },
     { "key": "sessionId", "value": "1055182" },
     { "key": "siteId", "value": "23234234" },
-    { "key": "siteCity", "value": "Rajshahi" },
+    { "key": "siteCity", "value": "Khulna" },
     { "key": "holdId", "value": "" },
     { "key": "reservationId", "value": "" },
     { "key": "paymentMethod", "value": "card" },
@@ -198,7 +198,7 @@
                   "    const first = list[0];",
                   "    const id = first.id || first.exam_session_id;",
                   "    const siteId = first.site_id || first.test_center?.site_id || first.test_center_id || first.site?.id;",
-                  "    const city = first.test_center?.city || first.site_city || first.city || first.site_city_name || first.test_center_city;",
+                  "    const city = first.site_city || first.city || first.site_city_name || first.test_center?.city || first.test_center_city;",
                   "    if (id) pm.collectionVariables.set('sessionId', String(id));",
                   "    if (siteId != null) pm.collectionVariables.set('siteId', String(siteId));",
                   "    if (city) pm.collectionVariables.set('siteCity', String(city));",
@@ -223,7 +223,7 @@
                 { "key": "exam_date", "value": "{{examDate}}" }
               ]
             },
-            "description": "Loads exam sessions and stores sessionId, siteId, and siteCity from the first result. Supports nested test_center.site_id."
+            "description": "Loads exam sessions and stores sessionId, siteId, and siteCity from the first result. Supports the real test_center_name shape and still accepts nested test_center.site_id if present."
           },
           "response": []
         }

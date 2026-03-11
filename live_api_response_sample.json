@@ -27,18 +27,11 @@
     "exam_sessions": [
       {
         "id": 1055182,
-        "city": "Mymensingh",
+        "city": "Khulna",
         "city_id": 12,
-        "site_id": 3001,
-        "site_city_name": "Mymensingh",
-        "test_center_name": "Main Test Center",
-        "test_center": {
-          "city": "Rajshahi",
-          "country_code": "+880",
-          "country_id": 78,
-          "site_id": 23234234,
-          "name": "Rajshahi Main Test Center"
-        },
+        "site_id": 23234234,
+        "site_city_name": "Khulna",
+        "test_center_name": "Khulna Technical Training Centre",
         "start_at": "2026-03-15T09:00:00+06:00"
       }
     ]
@@ -47,8 +40,8 @@
     "exam_session_id": 1055182,
     "occupation_id": 747,
     "language_code": "EMCEE",
-    "site_id": 3001,
-    "site_city": "Mymensingh",
+    "site_id": 23234234,
+    "site_city": "Khulna",
     "hold_id": null,
     "methodology": "in_person"
   },

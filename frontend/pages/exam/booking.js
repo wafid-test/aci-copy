@@ -38,9 +38,8 @@ function getSessionSiteCity(session) {
 
 function getSessionLabel(session) {
   const sessionId = getSessionId(session);
-  const testCenter = session?.test_center;
-  const centerName = testCenter?.name || session?.test_center_name || 'Unknown Center';
-  const centerCity = testCenter?.city || session?.city || session?.site_city_name || '';
+  const centerName = session?.test_center_name || session?.test_center?.name || 'Unknown Center';
+  const centerCity = session?.city || session?.site_city_name || session?.test_center?.city || '';
   const siteId = getSessionSiteId(session);
   const startAt = session?.start_at || session?.exam_date || '';
   return `#${sessionId} - ${centerName}${centerCity ? ` - ${centerCity}` : ''}${siteId ? ` - site_id ${siteId}` : ''}${startAt ? ` - ${startAt}` : ''}`;
@@ -77,7 +76,7 @@ export default function ExamBooking() {
     try {
       const res = await api('/api/svp/occupations');
       setOccupationsRaw(res);
-      setOut(JSON.stringify(res, null, 2));
+      setOut('Occupations loaded.');
       const arr = pickArray(res);
       if (arr?.[0]?.id) {
         if (!occupationId) setOccupationId(String(arr[0].id));
@@ -105,7 +104,7 @@ export default function ExamBooking() {
     try {
       const res = await api(`/api/svp/available-dates?${qs}`);
       setAvailableDatesRaw(res);
-      setOut(JSON.stringify(res, null, 2));
+      setOut('Available dates loaded.');
       const arr = pickArray(res);
       const maybeDate = arr?.[0]?.date || arr?.[0]?.exam_date || arr?.[0]?.day || arr?.[0] || '';
       if (typeof maybeDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(maybeDate)) {
@@ -127,7 +126,7 @@ export default function ExamBooking() {
     try {
       const res = await api(`/api/svp/exam-sessions?${qs}`);
       setSessionsRaw(res);
-      setOut(JSON.stringify(res, null, 2));
+      setOut('Test centers loaded.');
       const arr = pickArray(res);
       const first = arr?.[0];
       const firstId = getSessionId(first);
@@ -154,9 +153,9 @@ export default function ExamBooking() {
         body: { exam_session_id: [Number(selectedSessionId)], methodology },
       });
       setHoldRaw(res);
-      setOut(JSON.stringify(res, null, 2));
+      setOut('Temporary seat created.');
     } catch (e) {
-      setOut(JSON.stringify(e.data || e.message, null, 2));
+      setOut(e?.data?.message || e?.message || 'Temporary seat request failed.');
     }
   }
 
@@ -185,9 +184,9 @@ export default function ExamBooking() {
         },
       });
       setReservationRaw(res);
-      setOut(JSON.stringify(res, null, 2));
+      setOut('Reservation created successfully.');
     } catch (e) {
-      setOut(JSON.stringify(e.data || e.message, null, 2));
+      setOut(e?.data?.message || e?.message || 'Reservation request failed.');
     }
   }
 
@@ -270,7 +269,7 @@ export default function ExamBooking() {
         <div className="section-card">
           <div className="section-title-row">
             <h2>2. Load test centers</h2>
-            <p className="section-copy">Choose a city and date, then select a session with its visible <code>site_id</code>.</p>
+            <p className="section-copy">Choose a city and date, then select a real test center name with its visible <code>site_id</code>.</p>
           </div>
           <div className="form-grid">
             <div className="field-group">
@@ -368,13 +367,12 @@ export default function ExamBooking() {
           </div>
         </div>
 
-        <div className="section-card">
-          <div className="section-title-row">
-            <h2>Output</h2>
-            <p className="section-copy">Latest payload returned by the backend or upstream proxy.</p>
+        {out ? (
+          <div className="info-banner">
+            <span>Status</span>
+            <strong>{out}</strong>
           </div>
-          <pre className="output-panel">{out || 'No requests run yet.'}</pre>
-        </div>
+        ) : null}
       </div>
     </div>
   );
