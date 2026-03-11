@@ -41,11 +41,31 @@ app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 const origins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const vercelProject = (process.env.VERCEL_PROJECT_SLUG || '').trim().toLowerCase();
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (origins.length === 0) return true;
+  if (origins.includes(origin)) return true;
+
+  // Allow Vercel preview deployments for this project without listing each random URL.
+  if (vercelProject) {
+    try {
+      const { hostname, protocol } = new URL(origin);
+      if (protocol === 'https:' && hostname.endsWith('.vercel.app') && hostname.includes(`-${vercelProject}-`)) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 app.use(cors({
   origin: function(origin, cb){
-    if (!origin) return cb(null, true); // curl/postman
-    if (origins.length === 0) return cb(null, true);
-    return cb(null, origins.includes(origin));
+    return cb(null, isAllowedOrigin(origin));
   },
   credentials: true,
 }));
