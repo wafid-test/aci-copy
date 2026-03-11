@@ -56,231 +56,259 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="dashboard-shell">
-      <div className="dashboard-card">
-        <div className="toolbar">
-          <div className="badge">Dashboard</div>
-          <div className="toolbar-actions">
-            <Link className="nav-btn nav-btn--dark" href="/exam/reservations">
-              My bookings
-            </Link>
-            <button className="nav-btn nav-btn--accent" type="button" onClick={handleLogout} disabled={loggingOut}>
+    <div className="shell">
+      <div className="floating-label floating-label--left">Dashboard</div>
+      <Link className="floating-label floating-label--center" href="/exam/reservations">
+        My booking
+      </Link>
+      <Link className="floating-label floating-label--right" href="/exam/booking">
+        new booking
+      </Link>
+
+      <button className="logout-top" type="button" onClick={handleLogout} disabled={loggingOut}>
+        {loggingOut ? 'Logging out...' : 'Logout'}
+      </button>
+
+      <div className="card">
+        <div className="card-head">
+          <span className="badge">Dashboard</span>
+          <div className="card-head__actions">
+            <Link href="/exam/reservations">My bookings</Link>
+            <button className="logout-inline" type="button" onClick={handleLogout} disabled={loggingOut}>
               {loggingOut ? 'Logging out...' : 'Logout'}
             </button>
           </div>
         </div>
 
         <div className="hero">
-          <div>
+          <div className="hero-copy">
             <h1>Welcome back</h1>
-            <p className="subtitle">
-              {loading
-                ? 'Loading your account...'
-                : me?.name || me?.email || me?.login || 'Manage your bookings and reservations'}
-            </p>
+            <p>{loading ? 'Loading your account...' : me?.email || me?.login || me?.name || 'Manage your bookings'}</p>
           </div>
-          <div className="hero-chip">
-            <span className="hero-chip__label">Portal</span>
+          <div className="portal-card">
+            <span>Portal</span>
             <strong>Booking Center</strong>
           </div>
         </div>
 
-        {error ? <div className="status-card status-card--error">{error}</div> : null}
+        {error ? <div className="error-card">{error}</div> : null}
 
         <div className="action-grid">
-          <Link className="action-card action-card--primary" href="/exam/booking">
+          <Link className="action-card" href="/exam/booking">
             <span className="action-icon">+</span>
-            <span className="action-title">Create new booking</span>
-            <span className="action-desc">Open the booking page directly and search new test sessions.</span>
+            <div>
+              <strong>Create new booking</strong>
+              <p>Open the booking page directly and search new test sessions.</p>
+            </div>
           </Link>
 
-          <Link className="action-card action-card--secondary" href="/exam/reservations">
+          <Link className="action-card" href="/exam/reservations">
             <span className="action-icon">#</span>
-            <span className="action-title">My exam reservations</span>
-            <span className="action-desc">See booked exams and start reschedule from one page.</span>
+            <div>
+              <strong>My exam reservations</strong>
+              <p>See booked exams and start reschedule from one page.</p>
+            </div>
           </Link>
         </div>
       </div>
 
       <style jsx>{`
-        .dashboard-shell {
+        .shell {
           min-height: 100vh;
-          display: flex;
+          position: relative;
+          padding: 160px 24px 48px;
+          background: radial-gradient(circle at left, rgba(166, 208, 220, 0.45), transparent 28%),
+            #eef2f5;
+        }
+        .floating-label,
+        .logout-top {
+          position: absolute;
+          top: 24px;
+          min-width: 180px;
+          min-height: 84px;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 24px;
-          background:
-            radial-gradient(circle at top left, rgba(127, 193, 197, 0.35), transparent 32%),
-            linear-gradient(135deg, #edf2f6 0%, #e4ecf3 45%, #f7f0e9 100%);
+          background: #dfe4e8;
+          color: #111;
+          border: 0;
+          text-decoration: none;
+          font-size: 18px;
+          border-radius: 4px;
         }
-        .dashboard-card {
-          width: min(920px, 100%);
-          padding: 32px;
+        .floating-label--left {
+          left: 180px;
+        }
+        .floating-label--center {
+          left: 50%;
+          transform: translateX(-50%);
+          top: 190px;
+        }
+        .floating-label--right {
+          right: 420px;
+          top: 190px;
+        }
+        .logout-top {
+          right: 140px;
+          min-width: 130px;
+          min-height: 54px;
+          top: 18px;
+          cursor: pointer;
+        }
+        .card {
+          width: min(960px, 100%);
+          margin: 230px auto 0;
+          padding: 34px;
           border-radius: 28px;
-          background: rgba(255, 255, 255, 0.92);
-          box-shadow: 0 26px 70px rgba(33, 53, 85, 0.14);
-          border: 1px solid rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(10px);
+          background: rgba(255, 255, 255, 0.86);
+          box-shadow: 0 22px 55px rgba(38, 61, 89, 0.12);
         }
-        .toolbar {
+        .card-head {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          gap: 12px;
           margin-bottom: 28px;
         }
         .badge {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           min-height: 34px;
-          padding: 0 14px;
+          padding: 0 16px;
           border-radius: 999px;
-          background: #e1f0ef;
-          color: #39656b;
+          background: #d8e6e6;
+          color: #36606d;
           font-size: 12px;
           font-weight: 800;
           letter-spacing: 0.12em;
           text-transform: uppercase;
         }
-        .toolbar-actions {
+        .card-head__actions {
           display: flex;
-          gap: 12px;
-        }
-        .nav-btn {
-          display: inline-flex;
+          gap: 14px;
           align-items: center;
-          justify-content: center;
-          min-height: 44px;
+        }
+        .card-head__actions a {
+          color: #5f2bb8;
+          font-size: 15px;
+        }
+        .logout-inline {
+          min-height: 46px;
           padding: 0 18px;
           border: 0;
           border-radius: 14px;
-          text-decoration: none;
+          background: linear-gradient(135deg, #ff8c85 0%, #f4738d 100%);
+          color: #fff;
           font-weight: 700;
           cursor: pointer;
         }
-        .nav-btn--dark {
-          background: #0f1b3d;
-          color: #fff;
-        }
-        .nav-btn--accent {
-          background: linear-gradient(135deg, #ff8f70 0%, #f56d91 100%);
-          color: #fff;
-          box-shadow: 0 12px 24px rgba(245, 109, 145, 0.28);
-        }
         .hero {
           display: flex;
-          align-items: center;
           justify-content: space-between;
           gap: 24px;
+          align-items: center;
           margin-bottom: 24px;
         }
         h1 {
           margin: 0 0 12px;
-          font-size: 54px;
+          font-size: 60px;
           line-height: 1;
-          color: #0f1b3d;
+          color: #132251;
         }
-        .subtitle {
+        .hero-copy p {
           margin: 0;
-          max-width: 520px;
-          font-size: 20px;
-          line-height: 1.5;
-          color: #586279;
+          color: #5f6777;
+          font-size: 18px;
         }
-        .hero-chip {
-          min-width: 200px;
-          padding: 18px 20px;
-          border-radius: 22px;
-          background: linear-gradient(145deg, #10305d 0%, #1d5f71 100%);
+        .portal-card {
+          min-width: 240px;
+          padding: 18px 24px;
+          border-radius: 20px;
+          background: linear-gradient(135deg, #194568 0%, #1f5d76 100%);
           color: #fff;
-          box-shadow: 0 18px 34px rgba(25, 71, 104, 0.22);
+          box-shadow: 0 18px 34px rgba(26, 74, 107, 0.2);
         }
-        .hero-chip__label {
+        .portal-card span {
           display: block;
           margin-bottom: 6px;
-          font-size: 12px;
-          letter-spacing: 0.12em;
+          color: rgba(255, 255, 255, 0.76);
           text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.72);
+          letter-spacing: 0.1em;
+          font-size: 12px;
         }
-        .status-card {
-          margin-bottom: 20px;
-          padding: 16px 18px;
+        .portal-card strong {
+          font-size: 30px;
+        }
+        .error-card {
+          margin-bottom: 18px;
+          padding: 16px;
           border-radius: 16px;
-          font-weight: 600;
-        }
-        .status-card--error {
-          background: linear-gradient(135deg, #fff0ef 0%, #ffe6e5 100%);
-          color: #b34034;
-          border: 1px solid #ffd2cf;
+          background: #fff0ef;
+          color: #b53f3f;
         }
         .action-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 18px;
         }
         .action-card {
           display: flex;
-          flex-direction: column;
-          gap: 12px;
-          min-height: 190px;
-          padding: 24px;
-          border-radius: 24px;
+          gap: 16px;
+          padding: 12px 0;
           text-decoration: none;
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
-        }
-        .action-card:hover {
-          transform: translateY(-4px);
-        }
-        .action-card--primary {
-          background: linear-gradient(145deg, #e6f7f2 0%, #d6ecef 100%);
-          box-shadow: 0 16px 36px rgba(103, 157, 154, 0.16);
-        }
-        .action-card--secondary {
-          background: linear-gradient(145deg, #eef1ff 0%, #f3e8ff 100%);
-          box-shadow: 0 16px 36px rgba(117, 97, 181, 0.14);
         }
         .action-icon {
+          width: 54px;
+          height: 54px;
+          border-radius: 16px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 52px;
-          height: 52px;
-          border-radius: 16px;
-          background: rgba(15, 27, 61, 0.08);
-          color: #0f1b3d;
-          font-size: 28px;
+          background: #eef0f3;
+          color: #152457;
+          font-size: 32px;
           font-weight: 800;
+          flex: 0 0 auto;
         }
-        .action-title {
-          font-size: 28px;
-          line-height: 1.1;
-          font-weight: 800;
-          color: #0f1b3d;
+        .action-card strong {
+          display: block;
+          margin: 8px 0;
+          color: #16265a;
+          font-size: 26px;
         }
-        .action-desc {
-          font-size: 17px;
+        .action-card p {
+          margin: 0;
+          color: #5f6777;
+          font-size: 16px;
           line-height: 1.6;
-          color: #586279;
         }
-        @media (max-width: 720px) {
-          .dashboard-card {
-            padding: 24px;
+        @media (max-width: 1100px) {
+          .floating-label,
+          .logout-top {
+            position: static;
+            transform: none;
+            margin: 0 0 12px;
           }
-          .toolbar,
-          .toolbar-actions,
-          .hero {
+          .shell {
+            padding-top: 24px;
+          }
+          .card {
+            margin-top: 16px;
+          }
+        }
+        @media (max-width: 760px) {
+          .hero,
+          .card-head,
+          .card-head__actions,
+          .action-grid {
+            grid-template-columns: 1fr;
             flex-direction: column;
-            align-items: stretch;
+          }
+          .action-grid {
+            display: grid;
           }
           h1 {
-            font-size: 40px;
-          }
-          .subtitle {
-            font-size: 18px;
-          }
-          .hero-chip {
-            min-width: 0;
+            font-size: 42px;
           }
         }
       `}</style>

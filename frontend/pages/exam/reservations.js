@@ -6,54 +6,75 @@ import { api } from '../../lib/api';
 
 function pickArray(payload) {
   if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.data?.items)) return payload.data.items;
-  if (Array.isArray(payload?.exam_reservations)) return payload.exam_reservations;
-  if (Array.isArray(payload?.data?.exam_reservations)) return payload.data.exam_reservations;
-  if (Array.isArray(payload?.reservations)) return payload.reservations;
-  if (Array.isArray(payload?.data?.reservations)) return payload.data.reservations;
+
+  const candidates = [
+    payload?.data,
+    payload?.items,
+    payload?.result,
+    payload?.payload,
+    payload?.exam_reservations,
+    payload?.reservations,
+    payload?.data?.items,
+    payload?.data?.result,
+    payload?.data?.payload,
+    payload?.data?.exam_reservations,
+    payload?.data?.reservations,
+    payload?.result?.items,
+    payload?.result?.exam_reservations,
+    payload?.payload?.items,
+    payload?.payload?.exam_reservations,
+  ];
+
+  for (const item of candidates) {
+    if (Array.isArray(item)) return item;
+  }
+
   return [];
 }
 
+function value(item, keys) {
+  for (const key of keys) {
+    if (item?.[key] !== undefined && item?.[key] !== null && item?.[key] !== '') return item[key];
+    if (item?.data?.[key] !== undefined && item?.data?.[key] !== null && item?.data?.[key] !== '') return item.data[key];
+    if (item?.exam_session?.[key] !== undefined && item?.exam_session?.[key] !== null && item?.exam_session?.[key] !== '') return item.exam_session[key];
+    if (item?.test_center?.[key] !== undefined && item?.test_center?.[key] !== null && item?.test_center?.[key] !== '') return item.test_center[key];
+  }
+  return '';
+}
+
 function getReservationId(item) {
-  return item?.id || item?.reservation_id || item?.exam_reservation_id || '';
+  return value(item, ['id', 'reservation_id', 'exam_reservation_id']);
 }
 
 function getOccupationId(item) {
-  return item?.occupation_id || item?.occupation?.id || item?.occupation?.occupation_id || '';
+  return value(item, ['occupation_id']);
 }
 
 function getMethodology(item) {
-  return item?.methodology_type || item?.methodology || item?.exam_session?.methodology_type || 'in_person';
+  return value(item, ['methodology_type', 'methodology']) || 'in_person';
 }
 
 function getStatus(item) {
-  return item?.status || item?.reservation_status || item?.payment_status || 'Unknown';
+  return value(item, ['status', 'reservation_status', 'payment_status']) || 'Unknown';
 }
 
 function getDate(item) {
-  return item?.exam_date || item?.scheduled_at || item?.date || item?.exam_session?.exam_date || '';
+  return value(item, ['exam_date', 'scheduled_at', 'date', 'examDay']);
 }
 
 function getCenterName(item) {
   return (
-    item?.test_center_name ||
-    item?.test_center?.name ||
-    item?.test_center?.test_center_name ||
-    item?.exam_session?.test_center_name ||
-    item?.exam_session?.test_center?.name ||
-    item?.site_city ||
-    '-'
+    value(item, ['test_center_name', 'name', 'site_city', 'city']) ||
+    `Site #${getSiteId(item) || '-'}`
   );
 }
 
 function getSiteId(item) {
-  return item?.site_id || item?.test_center?.site_id || item?.exam_session?.site_id || '';
+  return value(item, ['site_id', 'id']);
 }
 
 function getLanguageCode(item) {
-  return item?.language_code || item?.prometric_code || '-';
+  return value(item, ['language_code', 'prometric_code', 'code']) || '-';
 }
 
 export default function ReservationsPage() {
@@ -69,8 +90,14 @@ export default function ReservationsPage() {
 
     try {
       const data = await api('/api/svp/exam-reservations?locale=en');
-      setItems(pickArray(data));
+      const reservations = pickArray(data);
+      setItems(reservations);
+
+      if (!reservations.length) {
+        setError('No booked reservations found from the API for this account.');
+      }
     } catch (err) {
+      setItems([]);
       setError(err?.message || 'Failed to load booked reservations');
     } finally {
       setLoading(false);
@@ -110,6 +137,7 @@ export default function ReservationsPage() {
         methodology: String(getMethodology(item)),
         examDate: String(getDate(item) || ''),
         siteId: String(getSiteId(item) || ''),
+        siteCity: String(value(item, ['site_city', 'city']) || ''),
         languageCode: String(getLanguageCode(item) || ''),
       });
 
@@ -126,9 +154,9 @@ export default function ReservationsPage() {
       <div className="page-card">
         <div className="page-head">
           <div>
-            <p className="eyebrow">Reservations</p>
+            <p className="eyebrow">My bookings</p>
             <h1>Booked exams</h1>
-            <p className="muted">Existing bookings from the real API appear here.</p>
+            <p className="muted">Your existing bookings should appear here automatically when the page opens.</p>
           </div>
           <div className="actions">
             <Link href="/dashboard" className="secondary-btn">
@@ -144,17 +172,23 @@ export default function ReservationsPage() {
 
         {loading ? <div className="empty-card">Loading booked reservations...</div> : null}
 
-        {!loading && items.length === 0 ? <div className="empty-card">No booked reservations found.</div> : null}
+        {!loading && !items.length ? (
+          <div className="empty-card">
+            No reservations are available to show. If you know bookings exist, the backend response shape may still need one more mapping update.
+          </div>
+        ) : null}
 
         <div className="reservation-grid">
           {items.map((item) => {
             const reservationId = getReservationId(item);
+
             return (
-              <div className="reservation-card" key={reservationId}>
+              <div className="reservation-card" key={reservationId || Math.random()}>
                 <div className="reservation-top">
-                  <h2>#{reservationId}</h2>
+                  <h2>#{reservationId || '-'}</h2>
                   <span>{getStatus(item)}</span>
                 </div>
+
                 <div className="detail-list">
                   <div>
                     <span>Test center</span>
@@ -177,6 +211,7 @@ export default function ReservationsPage() {
                     <strong>{getSiteId(item) || '-'}</strong>
                   </div>
                 </div>
+
                 <button
                   className="primary-btn"
                   type="button"
@@ -195,13 +230,13 @@ export default function ReservationsPage() {
         .page-shell {
           min-height: 100vh;
           padding: 24px;
-          background: #efefef;
+          background: #eef2f5;
         }
         .page-card {
           width: min(1180px, 100%);
           margin: 0 auto;
           padding: 28px;
-          border-radius: 20px;
+          border-radius: 24px;
           background: #fff;
           box-shadow: 0 20px 45px rgba(10, 31, 68, 0.08);
         }
@@ -210,10 +245,6 @@ export default function ReservationsPage() {
           justify-content: space-between;
           gap: 16px;
           margin-bottom: 24px;
-        }
-        .actions {
-          display: flex;
-          gap: 10px;
         }
         .eyebrow {
           margin: 0 0 8px;
@@ -230,6 +261,10 @@ export default function ReservationsPage() {
         .muted {
           margin: 0;
           color: #5f6777;
+        }
+        .actions {
+          display: flex;
+          gap: 10px;
         }
         .secondary-btn,
         .primary-btn {
