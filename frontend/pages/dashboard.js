@@ -28,7 +28,7 @@ export default function DashboardPage() {
         setMe(getProfile(data));
       } catch (err) {
         if (!active) return;
-        setError(err?.message || 'Request failed');
+        setError(err?.message || 'Failed to load dashboard');
       } finally {
         if (active) setLoading(false);
       }
@@ -56,262 +56,387 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="shell">
-      <div className="floating-label floating-label--left">Dashboard</div>
-      <Link className="floating-label floating-label--left-action" href="/exam/booking">
-        new booking
-      </Link>
-      <Link className="floating-label floating-label--right-action" href="/exam/reservations">
-        My booking
-      </Link>
+    <div className="dashboard-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark" />
+          <div>
+            <strong>Professional</strong>
+            <span>Accreditation</span>
+          </div>
+        </div>
 
-      <button className="logout-top" type="button" onClick={handleLogout} disabled={loggingOut}>
-        {loggingOut ? 'Logging out...' : 'Logout'}
-      </button>
+        <nav className="sidebar-nav">
+          <Link className="nav-item nav-item--active" href="/dashboard">
+            Account Dashboard
+          </Link>
+          <Link className="nav-item" href="/exam/reservations">
+            My bookings
+          </Link>
+          <Link className="nav-item" href="/exam/booking">
+            New booking
+          </Link>
+        </nav>
+      </aside>
 
-      <div className="card">
-        <div className="card-head">
-          <span className="badge">Dashboard</span>
-          <div className="card-head__actions">
-            <Link href="/exam/reservations">My bookings</Link>
-            <button className="logout-inline" type="button" onClick={handleLogout} disabled={loggingOut}>
+      <main className="main">
+        <header className="topbar">
+          <div className="topbar__locale">العربية</div>
+          <div className="topbar__user">
+            <div className="avatar" />
+            <div>
+              <strong>{loading ? 'Loading...' : me?.name || me?.login || 'User'}</strong>
+              <span>{me?.role || 'Labor'}</span>
+            </div>
+            <button className="logout-btn" type="button" onClick={handleLogout} disabled={loggingOut}>
               {loggingOut ? 'Logging out...' : 'Logout'}
             </button>
           </div>
-        </div>
+        </header>
 
-        <div className="hero">
-          <div className="hero-copy">
-            <h1>Welcome back</h1>
-            <p>{loading ? 'Loading your account...' : me?.email || me?.login || me?.name || 'Manage your bookings'}</p>
+        <section className="hero">
+          <div className="hero__copy">
+            <h1>Advance your career through professional accreditation</h1>
+            <p>
+              Use your dashboard to manage bookings, review current reservations, and continue your accreditation
+              process from one place.
+            </p>
+            <Link className="hero__cta" href="/exam/booking">
+              Start Verification
+            </Link>
           </div>
-          <div className="portal-card">
-            <span>Portal</span>
-            <strong>Booking Center</strong>
+
+          <div className="hero__steps">
+            <div className="step"><span>1</span><strong>Select your occupation</strong></div>
+            <div className="step"><span>2</span><strong>Enter your data</strong></div>
+            <div className="step"><span>3</span><strong>Review and confirm your information</strong></div>
+            <div className="step"><span>4</span><strong>Pay for the verification</strong></div>
           </div>
-        </div>
+        </section>
 
         {error ? <div className="error-card">{error}</div> : null}
 
-        <div className="action-grid">
-          <Link className="action-card" href="/exam/booking">
-            <span className="action-icon">+</span>
-            <div>
-              <strong>Create new booking</strong>
-              <p>Open the booking page directly and search new test sessions.</p>
-            </div>
-          </Link>
+        <section className="content">
+          <div className="tabs">
+            <span className="tabs__item tabs__item--active">Bookings</span>
+            <span className="tabs__item">Requests</span>
+          </div>
 
-          <Link className="action-card" href="/exam/reservations">
-            <span className="action-icon">#</span>
-            <div>
-              <strong>My exam reservations</strong>
-              <p>See booked exams and start reschedule from one page.</p>
+          <div className="booking-card">
+            <div className="booking-card__head">
+              <div>
+                <span className="label">Occupation</span>
+                <h2>Manage your exam bookings</h2>
+              </div>
+              <div className="booking-card__actions">
+                <Link className="action-btn action-btn--primary" href="/exam/booking">
+                  New booking
+                </Link>
+                <Link className="action-btn" href="/exam/reservations">
+                  View details
+                </Link>
+              </div>
             </div>
-          </Link>
-        </div>
-      </div>
+
+            <div className="booking-card__grid">
+              <div>
+                <span className="label">Account</span>
+                <strong>{loading ? 'Loading...' : me?.email || me?.login || '-'}</strong>
+              </div>
+              <div>
+                <span className="label">Booking status</span>
+                <strong className="success-dot">Ready</strong>
+              </div>
+              <div>
+                <span className="label">Methodology</span>
+                <strong>Direct Assessment</strong>
+              </div>
+              <div>
+                <span className="label">Actions</span>
+                <strong>Book, review, reschedule</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
 
       <style jsx>{`
-        .shell {
+        .dashboard-shell {
           min-height: 100vh;
-          position: relative;
-          padding: 160px 24px 48px;
-          background: radial-gradient(circle at left, rgba(166, 208, 220, 0.45), transparent 28%),
-            #eef2f5;
+          display: grid;
+          grid-template-columns: 246px minmax(0, 1fr);
+          background: #f3f5f7;
+          color: #23324d;
         }
-        .floating-label,
-        .logout-top {
-          position: absolute;
-          top: 24px;
-          min-width: 180px;
-          min-height: 84px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          background: #dfe4e8;
-          color: #111;
-          border: 4px solid #ff2d2d;
-          box-shadow: 0 12px 28px rgba(255, 45, 45, 0.12);
-          text-decoration: none;
-          font-size: 18px;
-          border-radius: 4px;
+        .sidebar {
+          background: #fff;
+          border-right: 1px solid #e0e6eb;
+          padding: 28px 18px;
         }
-        .floating-label--left {
-          left: 180px;
-        }
-        .floating-label--left-action {
-          left: 280px;
-          top: 190px;
-          min-width: 260px;
-        }
-        .floating-label--right-action {
-          right: 280px;
-          top: 190px;
-          min-width: 260px;
-        }
-        .logout-top {
-          right: 140px;
-          min-width: 130px;
-          min-height: 54px;
-          top: 18px;
-          cursor: pointer;
-          background: #efefef;
-        }
-        .card {
-          width: min(960px, 100%);
-          margin: 230px auto 0;
-          padding: 34px;
-          border-radius: 28px;
-          background: rgba(255, 255, 255, 0.86);
-          box-shadow: 0 22px 55px rgba(38, 61, 89, 0.12);
-        }
-        .card-head {
+        .brand {
           display: flex;
-          justify-content: space-between;
+          align-items: center;
           gap: 12px;
-          margin-bottom: 28px;
+          margin-bottom: 56px;
         }
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 34px;
-          padding: 0 16px;
-          border-radius: 999px;
-          background: #d8e6e6;
-          color: #36606d;
-          font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
+        .brand-mark {
+          width: 42px;
+          height: 26px;
+          border-radius: 0 20px 20px 20px;
+          background: linear-gradient(135deg, #0b8c93 0%, #f49a20 100%);
         }
-        .card-head__actions {
-          display: flex;
-          gap: 14px;
-          align-items: center;
+        .brand strong,
+        .brand span {
+          display: block;
+          line-height: 1.15;
         }
-        .card-head__actions a {
-          color: #5f2bb8;
+        .brand strong {
           font-size: 15px;
         }
-        .logout-inline {
-          min-height: 46px;
-          padding: 0 18px;
+        .brand span {
+          color: #0b8c93;
+          font-size: 14px;
+        }
+        .sidebar-nav {
+          display: grid;
+          gap: 14px;
+        }
+        .nav-item {
+          padding: 14px 16px;
+          border-radius: 8px;
+          text-decoration: none;
+          color: #3c475b;
+          font-weight: 600;
+        }
+        .nav-item--active {
+          background: #127d87;
+          color: #fff;
+        }
+        .main {
+          padding: 0 0 36px;
+        }
+        .topbar {
+          min-height: 62px;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 18px;
+          padding: 0 30px;
+          background: #fff;
+          border-bottom: 1px solid #e0e6eb;
+        }
+        .topbar__locale {
+          color: #67748a;
+          font-weight: 600;
+        }
+        .topbar__user {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .topbar__user strong,
+        .topbar__user span {
+          display: block;
+        }
+        .topbar__user span {
+          color: #8a95a6;
+          font-size: 14px;
+        }
+        .avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: #d5d9df;
+        }
+        .logout-btn {
+          min-height: 40px;
+          padding: 0 16px;
           border: 0;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #ff8c85 0%, #f4738d 100%);
+          border-radius: 10px;
+          background: #f06473;
           color: #fff;
           font-weight: 700;
           cursor: pointer;
         }
         .hero {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-        h1 {
-          margin: 0 0 12px;
-          font-size: 60px;
-          line-height: 1;
-          color: #132251;
-        }
-        .hero-copy p {
-          margin: 0;
-          color: #5f6777;
-          font-size: 18px;
-        }
-        .portal-card {
-          min-width: 240px;
-          padding: 18px 24px;
-          border-radius: 20px;
-          background: linear-gradient(135deg, #194568 0%, #1f5d76 100%);
-          color: #fff;
-          box-shadow: 0 18px 34px rgba(26, 74, 107, 0.2);
-        }
-        .portal-card span {
-          display: block;
-          margin-bottom: 6px;
-          color: rgba(255, 255, 255, 0.76);
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          font-size: 12px;
-        }
-        .portal-card strong {
-          font-size: 30px;
-        }
-        .error-card {
-          margin-bottom: 18px;
-          padding: 16px;
-          border-radius: 16px;
-          background: #fff0ef;
-          color: #b53f3f;
-        }
-        .action-grid {
+          margin: 0 0 26px;
+          padding: 48px 32px 42px;
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 18px;
+          grid-template-columns: minmax(0, 1fr) 344px;
+          gap: 28px;
+          background:
+            radial-gradient(circle at left bottom, rgba(101, 203, 205, 0.24), transparent 30%),
+            radial-gradient(circle at right top, rgba(113, 230, 220, 0.18), transparent 26%),
+            linear-gradient(135deg, #0b8b91 0%, #1d6f76 52%, #3a8e90 100%);
+          color: #fff;
         }
-        .action-card {
-          display: flex;
-          gap: 16px;
-          padding: 12px 0;
-          text-decoration: none;
+        .hero__copy h1 {
+          max-width: 680px;
+          margin: 0 0 20px;
+          font-size: 32px;
+          line-height: 1.2;
         }
-        .action-icon {
-          width: 54px;
-          height: 54px;
-          border-radius: 16px;
+        .hero__copy p {
+          max-width: 760px;
+          margin: 0 0 30px;
+          font-size: 17px;
+          line-height: 1.5;
+          color: rgba(255, 255, 255, 0.92);
+        }
+        .hero__cta {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: #eef0f3;
-          color: #152457;
-          font-size: 32px;
+          min-width: 200px;
+          min-height: 46px;
+          border-radius: 6px;
+          background: #fff;
+          color: #117983;
+          text-decoration: none;
+          font-weight: 700;
+        }
+        .hero__steps {
+          padding: 18px 20px;
+          border-radius: 14px;
+          background: rgba(40, 89, 95, 0.28);
+          backdrop-filter: blur(2px);
+        }
+        .step {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 24px;
+        }
+        .step:last-child {
+          margin-bottom: 0;
+        }
+        .step span {
+          width: 34px;
+          height: 34px;
+          border-radius: 12px;
+          border: 2px solid rgba(255, 255, 255, 0.8);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           font-weight: 800;
-          flex: 0 0 auto;
         }
-        .action-card strong {
-          display: block;
-          margin: 8px 0;
-          color: #16265a;
-          font-size: 26px;
-        }
-        .action-card p {
-          margin: 0;
-          color: #5f6777;
+        .step strong {
           font-size: 16px;
-          line-height: 1.6;
+          line-height: 1.4;
+        }
+        .error-card {
+          margin: 0 40px 20px;
+          padding: 14px 16px;
+          border-radius: 12px;
+          background: #fff1f1;
+          color: #b43c3c;
+        }
+        .content {
+          padding: 0 40px;
+        }
+        .tabs {
+          display: flex;
+          gap: 18px;
+          margin-bottom: 16px;
+          padding-left: 10px;
+          border-bottom: 1px solid #d8dee6;
+        }
+        .tabs__item {
+          padding: 10px 0;
+          color: #5f6777;
+        }
+        .tabs__item--active {
+          color: #127d87;
+          border-bottom: 2px solid #127d87;
+          margin-bottom: -1px;
+        }
+        .booking-card {
+          padding: 20px;
+          border: 1px solid #d6dde6;
+          border-radius: 12px;
+          background: #fff;
+        }
+        .booking-card__head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 20px;
+          padding-bottom: 18px;
+          border-bottom: 1px solid #e2e8ef;
+        }
+        .label {
+          display: block;
+          margin-bottom: 8px;
+          color: #6d788a;
+          font-size: 14px;
+        }
+        .booking-card__head h2 {
+          margin: 0;
+          font-size: 22px;
+          color: #24324d;
+        }
+        .booking-card__actions {
+          display: flex;
+          gap: 12px;
+        }
+        .action-btn {
+          min-height: 40px;
+          padding: 0 18px;
+          border-radius: 6px;
+          border: 1px solid #ccd5de;
+          color: #1d5c7a;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+        }
+        .action-btn--primary {
+          background: #127d87;
+          border-color: #127d87;
+          color: #fff;
+        }
+        .booking-card__grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+          padding-top: 18px;
+        }
+        .booking-card__grid strong {
+          color: #1f2b43;
+          font-size: 18px;
+        }
+        .success-dot {
+          color: #1a8b4f;
         }
         @media (max-width: 1100px) {
-          .floating-label,
-          .logout-top {
-            position: static;
-            transform: none;
-            margin: 0 0 12px;
-          }
-          .shell {
-            padding-top: 24px;
-          }
-          .card {
-            margin-top: 16px;
+          .hero,
+          .booking-card__grid {
+            grid-template-columns: 1fr 1fr;
           }
         }
-        @media (max-width: 760px) {
+        @media (max-width: 820px) {
+          .dashboard-shell {
+            grid-template-columns: 1fr;
+          }
+          .sidebar {
+            border-right: 0;
+            border-bottom: 1px solid #e0e6eb;
+          }
           .hero,
-          .card-head,
-          .card-head__actions,
-          .action-grid {
+          .booking-card__grid,
+          .booking-card__head {
             grid-template-columns: 1fr;
             flex-direction: column;
           }
-          .action-grid {
-            display: grid;
+          .content,
+          .hero {
+            padding-left: 20px;
+            padding-right: 20px;
           }
-          h1 {
-            font-size: 42px;
+          .error-card {
+            margin-left: 20px;
+            margin-right: 20px;
           }
         }
       `}</style>
