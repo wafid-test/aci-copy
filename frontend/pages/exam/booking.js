@@ -90,16 +90,33 @@ function extractId(payload, keys) {
   return '';
 }
 
+function buildCenterOptions(items) {
+  const map = new Map();
+
+  items.forEach((item) => {
+    const siteId = String(getSessionSiteId(item) || '');
+    if (!siteId || map.has(siteId)) return;
+
+    map.set(siteId, {
+      siteId,
+      name: getSessionCenterName(item),
+      city: getSessionSiteCity(item),
+    });
+  });
+
+  return Array.from(map.values());
+}
+
 export default function BookingPage() {
   const router = useRouter();
   const [occupations, setOccupations] = useState([]);
   const [availableDates, setAvailableDates] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [selectedOccupationId, setSelectedOccupationId] = useState('');
-  const [city, setCity] = useState('Rajshahi');
   const [availableDate, setAvailableDate] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [methodology, setMethodology] = useState('in_person');
+  const [selectedCenterId, setSelectedCenterId] = useState('');
   const [siteId, setSiteId] = useState('');
   const [siteCity, setSiteCity] = useState('');
   const [sessionId, setSessionId] = useState('');
@@ -119,9 +136,16 @@ export default function BookingPage() {
     [occupations, selectedOccupationId]
   );
 
+  const centerOptions = useMemo(() => buildCenterOptions(sessions), [sessions]);
+
+  const filteredSessions = useMemo(() => {
+    if (!selectedCenterId) return sessions;
+    return sessions.filter((item) => String(getSessionSiteId(item)) === String(selectedCenterId));
+  }, [sessions, selectedCenterId]);
+
   const selectedSession = useMemo(
-    () => sessions.find((item) => String(getSessionId(item)) === String(sessionId)) || null,
-    [sessions, sessionId]
+    () => filteredSessions.find((item) => String(getSessionId(item)) === String(sessionId)) || null,
+    [filteredSessions, sessionId]
   );
 
   useEffect(() => {
@@ -150,11 +174,12 @@ export default function BookingPage() {
     if (router.query.categoryId) setCategoryId(String(router.query.categoryId));
     if (router.query.methodology) setMethodology(String(router.query.methodology));
     if (router.query.languageCode) setLanguageCode(String(router.query.languageCode));
+    if (router.query.siteId) setSelectedCenterId(String(router.query.siteId));
     if (router.query.siteId) setSiteId(String(router.query.siteId));
     if (router.query.siteCity) setSiteCity(String(router.query.siteCity));
     if (router.query.examDate) setAvailableDate(normalizeDateValue(String(router.query.examDate)));
     if (router.query.reschedule === '1') {
-      setStatus('Reschedule mode active. Select a new date/session and complete booking.');
+      setStatus('Reschedule mode active. Select a new date, center, and session.');
     }
   }, [router.isReady, router.query]);
 
@@ -166,6 +191,38 @@ export default function BookingPage() {
       setLanguageCode(String(selectedOccupation.languageCodes[0].code));
     }
   }, [selectedOccupation, categoryId, methodology, languageCode]);
+
+  useEffect(() => {
+    if (!centerOptions.length) {
+      setSelectedCenterId('');
+      return;
+    }
+
+    const hasSelected = centerOptions.some((item) => String(item.siteId) === String(selectedCenterId));
+    if (!selectedCenterId || !hasSelected) {
+      setSelectedCenterId(String(centerOptions[0].siteId));
+    }
+  }, [centerOptions, selectedCenterId]);
+
+  useEffect(() => {
+    if (!filteredSessions.length) {
+      setSessionId('');
+      return;
+    }
+
+    const hasSelected = filteredSessions.some((item) => String(getSessionId(item)) === String(sessionId));
+    if (!sessionId || !hasSelected) {
+      setSessionId(String(getSessionId(filteredSessions[0])));
+    }
+  }, [filteredSessions, sessionId]);
+
+  useEffect(() => {
+    const selectedCenter = centerOptions.find((item) => String(item.siteId) === String(selectedCenterId));
+    if (selectedCenter) {
+      setSiteId(String(selectedCenter.siteId || ''));
+      setSiteCity(String(selectedCenter.city || ''));
+    }
+  }, [selectedCenterId, centerOptions]);
 
   useEffect(() => {
     if (!selectedSession) return;
@@ -194,14 +251,15 @@ export default function BookingPage() {
         locale: 'en',
       });
 
-      if (city) params.set('city', city);
       if (categoryId) params.set('category_id', categoryId);
 
       const data = await api(`/api/svp/available-dates?${params.toString()}`);
-      const dates = pickArray(data).map((item) => {
-        const value = typeof item === 'string' ? item : item?.date || item?.available_date || '';
-        return normalizeDateValue(value);
-      }).filter(Boolean);
+      const dates = pickArray(data)
+        .map((item) => {
+          const value = typeof item === 'string' ? item : item?.date || item?.available_date || '';
+          return normalizeDateValue(value);
+        })
+        .filter(Boolean);
 
       setAvailableDates(dates);
       if (!availableDate && dates[0]) setAvailableDate(dates[0]);
@@ -231,14 +289,12 @@ export default function BookingPage() {
         locale: 'en',
       });
 
-      if (city) params.set('city', city);
       if (categoryId) params.set('category_id', categoryId);
 
       const data = await api(`/api/svp/exam-sessions?${params.toString()}`);
       const items = pickArray(data);
       setSessions(items);
-      if (items[0]) setSessionId(String(getSessionId(items[0])));
-      setStatus(items.length ? 'Test sessions loaded' : 'No test sessions found');
+      setStatus(items.length ? 'Test centers and sessions loaded from API' : 'No test sessions found');
     } catch (err) {
       setError(err?.message || 'Failed to load test sessions');
     } finally {
@@ -315,7 +371,7 @@ export default function BookingPage() {
           <div>
             <p className="eyebrow">Booking</p>
             <h1>Create new booking</h1>
-            <p className="muted">Occupation, available dates, booked sessions, and hold/book flow in one page.</p>
+            <p className="muted">Load real test centers from the API, choose one from the dropdown, then book.</p>
           </div>
           <div className="head-actions">
             <Link href="/dashboard" className="secondary-btn">
@@ -341,11 +397,6 @@ export default function BookingPage() {
                 </option>
               ))}
             </select>
-          </label>
-
-          <label className="field">
-            <span>City</span>
-            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Rajshahi" />
           </label>
 
           <label className="field">
@@ -376,7 +427,7 @@ export default function BookingPage() {
             </select>
           </label>
 
-          <label className="field field-wide">
+          <label className="field">
             <span>Language</span>
             <select value={languageCode} onChange={(e) => setLanguageCode(e.target.value)}>
               <option value="">Select language</option>
@@ -418,7 +469,7 @@ export default function BookingPage() {
             {loadingDates ? 'Loading dates...' : 'Load available dates'}
           </button>
           <button className="secondary-btn" type="button" onClick={loadSessions} disabled={loadingSessions}>
-            {loadingSessions ? 'Loading sessions...' : 'Load test sessions'}
+            {loadingSessions ? 'Loading centers...' : 'Load test centers'}
           </button>
         </div>
 
@@ -451,17 +502,31 @@ export default function BookingPage() {
 
         {sessions.length ? (
           <>
-            <label className="field field-wide">
-              <span>Test center / session</span>
-              <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
-                <option value="">Select test center</option>
-                {sessions.map((item) => (
-                  <option key={getSessionId(item)} value={getSessionId(item)}>
-                    {getSessionCenterName(item)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="form-grid form-grid--secondary">
+              <label className="field field-wide">
+                <span>Test center</span>
+                <select value={selectedCenterId} onChange={(e) => setSelectedCenterId(e.target.value)}>
+                  <option value="">Select test center</option>
+                  {centerOptions.map((item) => (
+                    <option key={item.siteId} value={item.siteId}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="field field-wide">
+                <span>Test center / session</span>
+                <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+                  <option value="">Select session</option>
+                  {filteredSessions.map((item) => (
+                    <option key={getSessionId(item)} value={getSessionId(item)}>
+                      {getSessionCenterName(item)} | Session #{getSessionId(item)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             <div className="detail-grid detail-grid--session">
               <div>
@@ -527,7 +592,8 @@ export default function BookingPage() {
           color: #8ec0c8;
           font-weight: 700;
         }
-        h1, h2 {
+        h1,
+        h2 {
           margin: 0 0 8px;
         }
         .muted {
@@ -551,6 +617,9 @@ export default function BookingPage() {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 16px;
+        }
+        .form-grid--secondary {
+          margin-top: 18px;
         }
         .field {
           display: flex;
