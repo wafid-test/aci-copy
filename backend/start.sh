@@ -8,14 +8,20 @@ echo "Starting Railway boot sequence..."
 # Prisma CLI can be omitted in strict production installs.
 if [ -x "./node_modules/.bin/prisma" ]; then
   echo "Generating Prisma client..."
-  ./node_modules/.bin/prisma generate
+  if ! ./node_modules/.bin/prisma generate; then
+    echo "WARNING: prisma generate failed. Continuing startup..."
+  fi
 
   if [ -d "./prisma/migrations" ]; then
     echo "Running Prisma migrations (deploy)..."
-    ./node_modules/.bin/prisma migrate deploy
+    if ! ./node_modules/.bin/prisma migrate deploy; then
+      echo "WARNING: prisma migrate deploy failed. Continuing startup..."
+    fi
   else
     echo "No prisma/migrations directory found. Running prisma db push..."
-    ./node_modules/.bin/prisma db push
+    if ! ./node_modules/.bin/prisma db push; then
+      echo "WARNING: prisma db push failed. Continuing startup..."
+    fi
   fi
 else
   echo "Prisma CLI not found in node_modules. Skipping generate/migrate."
