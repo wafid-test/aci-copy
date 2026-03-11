@@ -1,9 +1,20 @@
 import crypto from 'crypto';
 
 function getKey(){
-  // 32 bytes key
-  const b64 = process.env.SESSION_ENC_KEY_BASE64;
-  if (b64 && b64.length > 0) return Buffer.from(b64, 'base64');
+  // Accept a real 32-byte base64 key when provided.
+  const raw = process.env.SESSION_ENC_KEY_BASE64;
+  if (raw && raw.length > 0) {
+    try {
+      const decoded = Buffer.from(raw, 'base64');
+      if (decoded.length === 32) return decoded;
+    } catch {
+      // Fall through to deterministic hashing below.
+    }
+
+    // Fallback: derive a stable 32-byte key from the provided value.
+    return crypto.createHash('sha256').update(raw).digest();
+  }
+
   // dev fallback (not for prod)
   return crypto.createHash('sha256').update(process.env.JWT_REFRESH_SECRET || 'dev').digest();
 }
