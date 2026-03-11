@@ -1,4 +1,5 @@
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+const DEFAULT_BACKEND_URL = "https://aci-api-production.up.railway.app";
+const BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL).replace(/\/+$/, "");
 
 async function doFetch(path, opts) {
   const res = await fetch(`${BASE}${path}`, opts);
