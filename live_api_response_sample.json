@@ -45,6 +45,18 @@
     "hold_id": null,
     "methodology": "in_person"
   },
+  "exam_reservation_response": {
+    "reservation": {
+      "id": 1670176,
+      "status": "pending_payment",
+      "exam_session_id": 1055182,
+      "occupation_id": 747,
+      "language_code": "EMCEE",
+      "site_id": 23234234,
+      "site_city": "Khulna",
+      "methodology": "in_person"
+    }
+  },
   "payment_create_request": {
     "payment": {
       "payment_method": "card",

@@ -376,6 +376,34 @@ label {
   min-height: 120px;
 }
 
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.detail-item {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #d6dde3;
+  background: #f8f9fb;
+}
+
+.detail-item span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #72808a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.detail-item strong {
+  color: #1f2933;
+  font-size: 15px;
+}
+
 @media (max-width: 760px) {
   .page-header {
     flex-direction: column;

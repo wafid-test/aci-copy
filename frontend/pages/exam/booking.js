@@ -20,6 +20,24 @@ function extractHoldId(json) {
   return json?.hold_id || json?.id || json?.data?.hold_id || json?.data?.id || null;
 }
 
+function extractReservationId(json) {
+  return json?.reservation?.id || json?.reservation_id || json?.id || json?.data?.reservation?.id || json?.data?.reservation_id || json?.data?.id || null;
+}
+
+function getReservationDetails(json, fallback = {}) {
+  const reservation = json?.reservation || json?.data?.reservation || json?.data || json || {};
+  return {
+    id: extractReservationId(json),
+    examSessionId: reservation?.exam_session_id ?? fallback.examSessionId ?? null,
+    occupationId: reservation?.occupation_id ?? fallback.occupationId ?? null,
+    languageCode: reservation?.language_code ?? fallback.languageCode ?? null,
+    siteId: reservation?.site_id ?? fallback.siteId ?? null,
+    siteCity: reservation?.site_city ?? fallback.siteCity ?? null,
+    methodology: reservation?.methodology ?? fallback.methodology ?? null,
+    status: reservation?.status || json?.status || json?.data?.status || null,
+  };
+}
+
 function getPrometricCodes(occupation) {
   return occupation?.category?.prometric_codes || [];
 }
@@ -197,6 +215,21 @@ export default function ExamBooking() {
     [occupationList, occupationId]
   );
   const languageOptions = useMemo(() => getPrometricCodes(selectedOccupation), [selectedOccupation]);
+  const reservationDetails = useMemo(
+    () => (
+      reservationRaw
+        ? getReservationDetails(reservationRaw, {
+            examSessionId: selectedSessionId || null,
+            occupationId: occupationId || null,
+            languageCode: languageCode || null,
+            siteId: siteId || null,
+            siteCity: siteCity || null,
+            methodology,
+          })
+        : null
+    ),
+    [reservationRaw, selectedSessionId, occupationId, languageCode, siteId, siteCity, methodology]
+  );
 
   useEffect(() => {
     if (!selectedOccupation) return;
@@ -366,6 +399,50 @@ export default function ExamBooking() {
             <button className="primary-button" onClick={bookReservation} type="button">Book reservation</button>
           </div>
         </div>
+
+        {reservationDetails ? (
+          <div className="section-card">
+            <div className="section-title-row">
+              <h2>4. Reservation result</h2>
+              <p className="section-copy">Clean summary from <code>/api/svp/exam-reservations</code>.</p>
+            </div>
+
+            <div className="detail-grid">
+              <div className="detail-item">
+                <span>Reservation ID</span>
+                <strong>{reservationDetails.id || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Status</span>
+                <strong>{reservationDetails.status || 'Created'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Exam Session ID</span>
+                <strong>{reservationDetails.examSessionId || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Occupation ID</span>
+                <strong>{reservationDetails.occupationId || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Language Code</span>
+                <strong>{reservationDetails.languageCode || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Methodology</span>
+                <strong>{reservationDetails.methodology || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Site ID</span>
+                <strong>{reservationDetails.siteId || 'N/A'}</strong>
+              </div>
+              <div className="detail-item">
+                <span>Site City</span>
+                <strong>{reservationDetails.siteCity || 'N/A'}</strong>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {out ? (
           <div className="info-banner">
