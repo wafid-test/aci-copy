@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { api } from '../../lib/api';
+import RecaptchaWidget from '../../components/RecaptchaWidget';
 
 export default function Login() {
   const [login, setLogin] = useState('');
@@ -76,12 +77,8 @@ export default function Login() {
             <option value="sms">SMS</option>
           </select>
 
-          <label>Recaptcha Token (optional)</label>
-          <input
-            value={recaptchaToken}
-            onChange={(e) => setRecaptchaToken(e.target.value)}
-            placeholder="Paste SVP recaptcha token if required"
-          />
+          <label>Recaptcha</label>
+          <RecaptchaWidget onToken={setRecaptchaToken} />
 
           <button type="submit" className="auth-submit">Sign in</button>
           <p className="auth-message">{msg}</p>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { api } from '../../lib/api';
+import RecaptchaWidget from '../../components/RecaptchaWidget';
 
 export default function Otp() {
   const router = useRouter();
@@ -69,12 +70,8 @@ export default function Otp() {
         </div>
 
         <form className="auth-form" onSubmit={verify}>
-          <label>Recaptcha Token (optional)</label>
-          <input
-            value={recaptchaToken}
-            onChange={(e) => setRecaptchaToken(e.target.value)}
-            placeholder="Paste SVP recaptcha token if required"
-          />
+          <label>Recaptcha</label>
+          <RecaptchaWidget onToken={setRecaptchaToken} />
 
           <label>OTP Code</label>
           <input
