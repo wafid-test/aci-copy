@@ -9,6 +9,7 @@ import { svpRequest } from '../lib/svpClient.js';
 
 const router = Router();
 const requirePortalApproval = String(process.env.REQUIRE_PORTAL_APPROVAL || 'false') === 'true';
+const debugRecaptcha = String(process.env.DEBUG_RECAPTCHA || 'false') === 'true';
 
 function pickFirst(...values) {
   for (const value of values) {
@@ -44,6 +45,12 @@ function extractOtpPayload(data) {
   );
 
   return { token, accessExpiresAt, user };
+}
+
+function logRecaptchaDebug(flow, token) {
+  if (!debugRecaptcha) return;
+  const len = token ? String(token).length : 0;
+  console.log(`[recaptcha] flow=${flow} token_present=${Boolean(token)} token_length=${len}`);
 }
 
 const PortalLoginSchema = z.object({
@@ -131,6 +138,7 @@ router.post('/portal-login', async (req, res, next) => {
 router.post('/login', async (req, res, next) => {
   try {
     const { login, password, otpMethod, recaptchaToken } = LoginSchema.parse(req.body);
+    logRecaptchaDebug('login', recaptchaToken);
     await resolvePortalUserForSvpLogin(login, password);
 
     const feApp = process.env.SVP_FE_APP || 'legislator';
@@ -162,6 +170,7 @@ router.post('/login', async (req, res, next) => {
 router.post('/otp-verify', async (req, res, next) => {
   try {
     const { login, password, otpAttempt, otpMethod, recaptchaToken } = OtpSchema.parse(req.body);
+    logRecaptchaDebug('otp-verify', recaptchaToken);
     const portalUser = await resolvePortalUserForSvpLogin(login, password);
     const feApp = process.env.SVP_FE_APP || 'legislator';
     const captchaFields = recaptchaToken

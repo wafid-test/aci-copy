@@ -23,7 +23,9 @@ export default function Login() {
     setMsg('Verifying recaptcha...');
     try {
       const recaptchaToken = await executeRecaptcha('svp_login');
-      setMsg('Sending OTP...');
+      const tokenLen = recaptchaToken ? String(recaptchaToken).length : 0;
+      if (!recaptchaToken) throw new Error('Recaptcha token missing');
+      setMsg(`Recaptcha OK (token length: ${tokenLen}). Sending OTP...`);
       await api('/api/auth/login', {
         method: 'POST',
         body: {

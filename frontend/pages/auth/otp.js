@@ -28,7 +28,9 @@ export default function Otp() {
     setMsg('Verifying recaptcha...');
     try {
       const recaptchaToken = await executeRecaptcha('svp_otp_verify');
-      setMsg('Verifying OTP...');
+      const tokenLen = recaptchaToken ? String(recaptchaToken).length : 0;
+      if (!recaptchaToken) throw new Error('Recaptcha token missing');
+      setMsg(`Recaptcha OK (token length: ${tokenLen}). Verifying OTP...`);
       const res = await api('/api/auth/otp-verify', {
         method: 'POST',
         body: {
