@@ -1,12 +1,9 @@
+import { getRuntimeEnvFlags, resolveRecaptchaSiteKey } from './runtimeEnv';
+
 const SCRIPT_ID = 'google-recaptcha-v3-script';
 
 function getSiteKey() {
-  const envKey = (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '').trim();
-  if (envKey) return envKey;
-
-  // Public site key fallback from SVP production config.
-  // Keeps login flow working if Vercel env was not set yet.
-  return '6LdhZ_IUAAAAABjY17EoRq8fLJSj8dtNgcMeddrr';
+  return resolveRecaptchaSiteKey();
 }
 
 function loadScript(siteKey) {
@@ -78,7 +75,8 @@ function loadScript(siteKey) {
 export async function executeRecaptcha(action = 'login') {
   const siteKey = getSiteKey();
   if (!siteKey) {
-    throw new Error('Missing NEXT_PUBLIC_RECAPTCHA_SITE_KEY');
+    const { host } = getRuntimeEnvFlags();
+    throw new Error(`Missing NEXT_PUBLIC_RECAPTCHA_SITE_KEY (host: ${host || 'unknown'})`);
   }
 
   const grecaptcha = await loadScript(siteKey);
