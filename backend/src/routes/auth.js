@@ -9,7 +9,6 @@ import { svpRequest } from '../lib/svpClient.js';
 
 const router = Router();
 const requirePortalApproval = String(process.env.REQUIRE_PORTAL_APPROVAL || 'false') === 'true';
-const debugRecaptcha = String(process.env.DEBUG_RECAPTCHA || 'false') === 'true';
 
 function pickFirst(...values) {
   for (const value of values) {
@@ -47,12 +46,6 @@ function extractOtpPayload(data) {
   return { token, accessExpiresAt, user };
 }
 
-function logRecaptchaDebug(flow, token) {
-  if (!debugRecaptcha) return;
-  const len = token ? String(token).length : 0;
-  console.log(`[recaptcha] flow=${flow} token_present=${Boolean(token)} token_length=${len}`);
-}
-
 const PortalLoginSchema = z.object({
   login: z.string().min(3),
   password: z.string().min(3),
@@ -62,7 +55,8 @@ const LoginSchema = z.object({
   login: z.string().min(3),
   password: z.string().min(3),
   otpMethod: z.enum(['email', 'sms']).default('email'),
-  recaptchaToken: z.string().min(10).optional(),
+  recaptchaToken: z.string().min(1).optional(),
+  recaptchaResponse: z.string().min(1).optional(),
 });
 
 const OtpSchema = z.object({
@@ -70,7 +64,8 @@ const OtpSchema = z.object({
   password: z.string().min(3),
   otpAttempt: z.string().min(4).max(10),
   otpMethod: z.enum(['email', 'sms']).default('email'),
-  recaptchaToken: z.string().min(10).optional(),
+  recaptchaToken: z.string().min(1).optional(),
+  recaptchaResponse: z.string().min(1).optional(),
 });
 
 async function assertApprovedPortalUser(login, password) {
@@ -137,27 +132,23 @@ router.post('/portal-login', async (req, res, next) => {
 
 router.post('/login', async (req, res, next) => {
   try {
-    const { login, password, otpMethod, recaptchaToken } = LoginSchema.parse(req.body);
-    logRecaptchaDebug('login', recaptchaToken);
+    const { login, password, otpMethod, recaptchaToken, recaptchaResponse } = LoginSchema.parse(req.body);
     await resolvePortalUserForSvpLogin(login, password);
 
     const feApp = process.env.SVP_FE_APP || 'legislator';
-    const captchaFields = recaptchaToken
-      ? {
-          recaptcha: recaptchaToken,
-          recaptcha_token: recaptchaToken,
-          recaptcha_v3: recaptchaToken,
-          recaptcha_v3_token: recaptchaToken,
-          recaptcha_response: recaptchaToken,
-          'g-recaptcha-response': recaptchaToken,
-        }
-      : {};
+    const recaptcha = recaptchaToken || recaptchaResponse;
+    const userPayload = {
+      login,
+      password,
+      otp_method: otpMethod,
+      fe_app: feApp,
+      ...(recaptcha ? { recaptcha_response: recaptcha, recaptcha_token: recaptcha } : {}),
+    };
 
     await svpRequest('/api/v1/sessions/login', {
       method: 'POST',
       body: {
-        user: { login, password, otp_method: otpMethod, fe_app: feApp, ...captchaFields },
-        ...captchaFields,
+        user: userPayload,
       },
     });
 
@@ -169,33 +160,23 @@ router.post('/login', async (req, res, next) => {
 
 router.post('/otp-verify', async (req, res, next) => {
   try {
-    const { login, password, otpAttempt, otpMethod, recaptchaToken } = OtpSchema.parse(req.body);
-    logRecaptchaDebug('otp-verify', recaptchaToken);
+    const { login, password, otpAttempt, otpMethod, recaptchaToken, recaptchaResponse } = OtpSchema.parse(req.body);
     const portalUser = await resolvePortalUserForSvpLogin(login, password);
     const feApp = process.env.SVP_FE_APP || 'legislator';
-    const captchaFields = recaptchaToken
-      ? {
-          recaptcha: recaptchaToken,
-          recaptcha_token: recaptchaToken,
-          recaptcha_v3: recaptchaToken,
-          recaptcha_v3_token: recaptchaToken,
-          recaptcha_response: recaptchaToken,
-          'g-recaptcha-response': recaptchaToken,
-        }
-      : {};
+    const recaptcha = recaptchaToken || recaptchaResponse;
+    const userPayload = {
+      login,
+      password,
+      otp_attempt: otpAttempt,
+      fe_app: feApp,
+      otp_method: otpMethod,
+      ...(recaptcha ? { recaptcha_response: recaptcha, recaptcha_token: recaptcha } : {}),
+    };
 
     const data = await svpRequest('/api/v1/sessions/otp', {
       method: 'POST',
       body: {
-        user: {
-          login,
-          password,
-          otp_attempt: otpAttempt,
-          fe_app: feApp,
-          otp_method: otpMethod,
-          ...captchaFields,
-        },
-        ...captchaFields,
+        user: userPayload,
       },
     });
 
