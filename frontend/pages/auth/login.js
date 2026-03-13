@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { api } from '../../lib/api';
+import { executeRecaptcha } from '../../lib/recaptcha';
 
 export default function Login() {
   const [login, setLogin] = useState('');
@@ -21,12 +22,14 @@ export default function Login() {
     e.preventDefault();
     setMsg('Sending OTP...');
     try {
+      const recaptchaResponse = await executeRecaptcha('svp_login');
       await api('/api/auth/login', {
         method: 'POST',
         body: {
           login,
           password,
           otpMethod,
+          recaptchaResponse,
         },
       });
 

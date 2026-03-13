@@ -124,7 +124,7 @@ router.post('/login', async (req, res, next) => {
       password,
       otp_method: otpMethod,
       fe_app: feApp,
-      ...(recaptcha ? { recaptcha_response: recaptcha, recaptcha_token: recaptcha } : {}),
+      ...(recaptcha ? { recaptcha_response: recaptcha } : {}),
     };
 
     await svpRequest('/api/v1/sessions/login', {
@@ -153,7 +153,7 @@ router.post('/otp-verify', async (req, res, next) => {
       otp_attempt: otpAttempt,
       fe_app: feApp,
       otp_method: otpMethod,
-      ...(recaptcha ? { recaptcha_response: recaptcha, recaptcha_token: recaptcha } : {}),
+      ...(recaptcha ? { recaptcha_response: recaptcha } : {}),
     };
 
     const data = await svpRequest('/api/v1/sessions/otp', {

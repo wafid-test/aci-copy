@@ -25,9 +25,17 @@ export function getRuntimeEnvFlags() {
 
 export function resolveRecaptchaSiteKey() {
   const envKey = (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || '').trim();
-  if (envKey) return envKey;
+  const invalidPlaceholders = new Set([
+    'your_recaptcha_site_key',
+    'changeme',
+    'change_me',
+    'replace_me',
+    'none',
+    'null',
+    'undefined',
+  ]);
+  if (envKey && !invalidPlaceholders.has(envKey.toLowerCase())) return envKey;
 
   // Public key observed from SVP frontend config.
   return '6LdhZ_IUAAAAABjY17EoRq8fLJSj8dtNgcMeddrr';
 }
-
