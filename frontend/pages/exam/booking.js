@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
 
 const DEFAULT_CATEGORY_ID = '159';
+const DEFAULT_BACKEND_URL = 'https://aci-api-production.up.railway.app';
 
 function pickArray(payload) {
   if (Array.isArray(payload)) return payload;
@@ -594,12 +595,59 @@ export default function BookingPage() {
       });
       const nextReservationId = extractId(data, ['id', 'reservation_id', 'exam_reservation_id']);
       setReservationId(String(nextReservationId || ''));
-      setStatus(nextReservationId ? `Reservation created: #${nextReservationId}` : 'Reservation created');
+      if (nextReservationId && bookingMode.type === 'reservation_credit') {
+        await api('/api/svp/reservation-credits/use', {
+          method: 'POST',
+          body: {
+            methodology_type: methodology || 'in_person',
+            reservation_id: Number(nextReservationId),
+            occupation_id: Number(selectedOccupationId),
+          },
+        });
+      }
+      setStatus(nextReservationId ? `Reservation confirmed: #${nextReservationId}` : 'Reservation created');
+      if (nextReservationId) {
+        await openTicketPdf(nextReservationId);
+      }
     } catch (err) {
       setError(err?.message || 'Failed to book reservation');
     } finally {
       setBooking(false);
     }
+  }
+
+  async function openTicketPdf(nextReservationId) {
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
+    const base = (process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL).replace(/\/+$/, '');
+    const response = await fetch(`${base}/api/svp/tickets/${encodeURIComponent(nextReservationId)}/show-pdf?locale=en`, {
+      method: 'GET',
+      headers: {
+        Accept: '*/*',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || 'Failed to open ticket PDF');
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await response.json();
+      const url = data?.url || data?.pdf_url || data?.data?.url || data?.data?.pdf_url;
+      if (url) {
+        window.open(String(url), '_blank', 'noopener,noreferrer');
+        return;
+      }
+      throw new Error('Ticket PDF URL not found in response');
+    }
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   }
 
   function shiftCalendarMonth(delta) {
@@ -800,7 +848,7 @@ export default function BookingPage() {
             {creatingHold ? 'Creating hold...' : 'Create Hold'}
           </button>
           <button className="primary-btn" type="button" onClick={bookReservation} disabled={booking || !sessionId}>
-            {booking ? 'Booking...' : 'Book Now'}
+            {booking ? 'Confirming...' : 'Confirm Booking'}
           </button>
         </div>
       </div>

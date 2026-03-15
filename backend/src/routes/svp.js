@@ -296,4 +296,55 @@ router.get('/user-balance', async (req, res, next) => {
   }
 });
 
+router.get('/tickets/:reservationId/show-pdf', async (req, res, next) => {
+  try {
+    const token = await getSvpToken(req);
+    const base = process.env.SVP_BASE_URL;
+    const locale = process.env.SVP_LOCALE || 'en';
+    const svpOrigin = process.env.SVP_WEB_ORIGIN || 'https://svp-international.pacc.sa';
+    const svpReferer = process.env.SVP_WEB_REFERER || `${svpOrigin}/`;
+    const svpUserAgent =
+      process.env.SVP_USER_AGENT ||
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36';
+
+    const path = buildPath(`/api/v1/individual_labor_space/tickets/${req.params.reservationId}/show_pdf`, req.query);
+    const url = `${base}${path}${path.includes('?') ? '&' : '?'}locale=${encodeURIComponent(locale)}`;
+
+    const upstream = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: '*/*',
+        Authorization: `Bearer ${token}`,
+        Origin: svpOrigin,
+        Referer: svpReferer,
+        'User-Agent': svpUserAgent,
+      },
+    });
+
+    const contentType = upstream.headers.get('content-type') || '';
+    const disposition = upstream.headers.get('content-disposition');
+    const status = upstream.status;
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+
+    if (!upstream.ok) {
+      let details = null;
+      try {
+        details = JSON.parse(buffer.toString('utf8'));
+      } catch {
+        details = { raw: buffer.toString('utf8') };
+      }
+      const err = new Error(`SVP request failed: ${status}`);
+      err.statusCode = status;
+      err.details = details;
+      throw err;
+    }
+
+    if (contentType) res.setHeader('Content-Type', contentType);
+    if (disposition) res.setHeader('Content-Disposition', disposition);
+    return res.status(200).send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export const svpRouter = router;
