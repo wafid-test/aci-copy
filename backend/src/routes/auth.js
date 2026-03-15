@@ -137,11 +137,10 @@ async function createSessionForUser({ login, svpToken, svpExp }) {
   const user = await prisma.user.upsert({
     where: { login },
     update: {
-      svpAccessEnc: encryptString(svpToken),
+      // Keep the same user record. We do not store raw token on User.
     },
     create: {
       login,
-      svpAccessEnc: encryptString(svpToken),
     },
   });
 

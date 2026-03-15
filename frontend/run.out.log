@@ -1,0 +1,21 @@
+
+> svp-frontend@1.0.0 dev
+> next dev -p 3000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 12.1s
+ ○ Compiling /auth/login ...
+ ✓ Compiled /auth/login in 21.6s (330 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 2000ms (328 modules)
+ GET / 200 in 2281ms
+ GET / 200 in 26ms
+ GET / 200 in 20ms
+ ○ Compiling /user ...
+ ✓ Compiled /user in 561ms (332 modules)
+ ✓ Compiled /auth/login in 432ms (338 modules)
+ GET /auth/login 200 in 390ms
