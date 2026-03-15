@@ -634,11 +634,25 @@ export default function BookingPage() {
     }
 
     const contentType = response.headers.get('content-type') || '';
+    const disposition = response.headers.get('content-disposition') || '';
+    const fileNameMatch = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+    const fallbackFileName = `ticket-${nextReservationId}.pdf`;
+    const fileName = fileNameMatch ? decodeURIComponent(fileNameMatch[1]) : fallbackFileName;
+
+    function triggerDownload(href, name) {
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.download = name;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    }
+
     if (contentType.includes('application/json')) {
       const data = await response.json();
       const url = data?.url || data?.pdf_url || data?.data?.url || data?.data?.pdf_url;
       if (url) {
-        window.open(String(url), '_blank', 'noopener,noreferrer');
+        triggerDownload(String(url), fallbackFileName);
         return;
       }
       throw new Error('Ticket PDF URL not found in response');
@@ -646,7 +660,7 @@ export default function BookingPage() {
 
     const blob = await response.blob();
     const blobUrl = URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank', 'noopener,noreferrer');
+    triggerDownload(blobUrl, fileName);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   }
 
@@ -860,10 +874,7 @@ export default function BookingPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background:
-            radial-gradient(circle at 20% 10%, rgba(22, 203, 161, 0.08), transparent 30%),
-            radial-gradient(circle at 80% 90%, rgba(20, 116, 237, 0.12), transparent 35%),
-            #070d19;
+          background: #d6dde3;
           color: #d9e4ff;
         }
         .booking-modal {
