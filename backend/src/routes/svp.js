@@ -77,8 +77,16 @@ router.get('/exam-constraints', async (req, res, next) => {
 
 router.get('/available-dates', async (req, res, next) => {
   try {
-    res.json(await forward(req, 'GET', '/api/v1/individual_labor_space/available_dates'));
+    return res.json(await forward(req, 'GET', '/api/v1/individual_labor_space/available_dates'));
   } catch (error) {
+    // Some SVP versions use dashed path. Retry once for compatibility.
+    if (error?.statusCode === 404) {
+      try {
+        return res.json(await forward(req, 'GET', '/api/v1/individual_labor_space/available-dates'));
+      } catch (error2) {
+        return next(error2);
+      }
+    }
     next(error);
   }
 });
