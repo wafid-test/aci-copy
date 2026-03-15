@@ -207,7 +207,13 @@ function formatDateLabel(value) {
 
 function readNumeric(payload, keys) {
   for (const key of keys) {
-    const value = payload?.[key] ?? payload?.data?.[key] ?? payload?.result?.[key];
+    const value =
+      payload?.[key] ??
+      payload?.balance?.[key] ??
+      payload?.data?.[key] ??
+      payload?.data?.balance?.[key] ??
+      payload?.result?.[key] ??
+      payload?.result?.balance?.[key];
     if (value !== undefined && value !== null && value !== '') {
       const numeric = Number(value);
       if (Number.isFinite(numeric)) return numeric;
@@ -516,6 +522,17 @@ export default function BookingPage() {
       setError('Select test center / session first');
       return;
     }
+    const sessionIds = Array.from(
+      new Set(
+        (filteredSessions.length ? filteredSessions : [selectedSession])
+          .map((item) => Number(getSessionId(item)))
+          .filter((item) => Number.isFinite(item) && item > 0)
+      )
+    );
+    if (!sessionIds.length) {
+      setError('No valid exam sessions found for hold creation');
+      return;
+    }
     setCreatingHold(true);
     setError('');
     setStatus('');
@@ -523,7 +540,7 @@ export default function BookingPage() {
       const data = await api('/api/svp/temporary-seats', {
         method: 'POST',
         body: {
-          exam_session_id: [Number(sessionId)],
+          exam_session_id: sessionIds,
           methodology: methodology || 'in_person',
         },
       });
@@ -540,6 +557,12 @@ export default function BookingPage() {
   async function bookReservation() {
     if (!sessionId) {
       setError('Select test center / session first');
+      return;
+    }
+    try {
+      await api(`/api/svp/exam-session/${encodeURIComponent(sessionId)}?locale=en`);
+    } catch (err) {
+      setError(err?.message || 'Selected exam session is no longer available');
       return;
     }
     const sessionCodes = getPrometricCodes(selectedSession);

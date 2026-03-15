@@ -58,6 +58,18 @@ async function getActiveSession(req, { includeUser = false } = {}) {
   return session;
 }
 
+function decodeJwtPayload(token) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length < 2) return null;
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+    return JSON.parse(Buffer.from(normalized, 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
 function buildPath(basePath, query = {}) {
   const params = new URLSearchParams();
 
@@ -246,20 +258,39 @@ router.get('/user-balance/:svpUserId', async (req, res, next) => {
 router.get('/user-balance', async (req, res, next) => {
   try {
     const session = await getActiveSession(req, { includeUser: true });
-    const svpUserId = session?.user?.svpUserId;
+    const token = decryptString(session.svpAccessEnc);
+    const tokenPayload = decodeJwtPayload(token);
+    const svpUserId = Number(
+      session?.user?.svpUserId ||
+      tokenPayload?.user_id ||
+      tokenPayload?.userId ||
+      tokenPayload?.uid ||
+      0
+    );
     if (!svpUserId) {
       const err = new Error('Missing svpUserId for current user');
       err.statusCode = 400;
       throw err;
     }
 
-    const token = decryptString(session.svpAccessEnc);
-    res.json(
-      await svpRequest(buildPath(`/api/v1/individual_labor_space/user_balance/${svpUserId}`, req.query), {
-        method: 'GET',
-        token,
-      })
-    );
+    try {
+      return res.json(
+        await svpRequest(buildPath(`/api/v1/users/${svpUserId}/balance`, req.query), {
+          method: 'GET',
+          token,
+        })
+      );
+    } catch (error) {
+      if (error?.statusCode === 404) {
+        return res.json(
+          await svpRequest(buildPath(`/api/v1/individual_labor_space/user_balance/${svpUserId}`, req.query), {
+            method: 'GET',
+            token,
+          })
+        );
+      }
+      throw error;
+    }
   } catch (error) {
     next(error);
   }
