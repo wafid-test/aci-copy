@@ -47,7 +47,7 @@ function getReservationId(item) {
 }
 
 function getOccupationId(item) {
-  return value(item, ['occupation_id']);
+  return value(item, ['occupation_id']) || item?.occupation?.id || '';
 }
 
 function getMethodology(item) {
@@ -55,26 +55,54 @@ function getMethodology(item) {
 }
 
 function getStatus(item) {
-  return value(item, ['status', 'reservation_status', 'payment_status']) || 'Unknown';
+  return value(item, ['reservation_status', 'status', 'payment_status']) || 'Unknown';
 }
 
 function getDate(item) {
-  return value(item, ['exam_date', 'scheduled_at', 'date', 'examDay']);
+  return (
+    value(item, [
+      'exam_date',
+      'scheduled_at',
+      'date',
+      'examDay',
+      'test_date',
+      'start_at_in_browser_time_zone',
+      'start_at',
+    ]) || item?.exam_session?.test_date || item?.exam_session?.start_at_in_browser_time_zone || ''
+  );
 }
 
 function getCenterName(item) {
   return (
     value(item, ['test_center_name', 'name', 'site_city', 'city']) ||
+    item?.exam_session?.test_center?.name ||
     `Site #${getSiteId(item) || '-'}`
   );
 }
 
 function getSiteId(item) {
-  return value(item, ['site_id', 'id']);
+  return value(item, ['site_id']) || item?.prometric_data?.site_id || item?.exam_session?.test_center?.site_id || '';
 }
 
 function getLanguageCode(item) {
   return value(item, ['language_code', 'prometric_code', 'code']) || '-';
+}
+
+function getSessionId(item) {
+  return value(item, ['exam_session_id']) || item?.exam_session?.id || '';
+}
+
+function canReschedule(item) {
+  return Boolean(item?.can_be_rescheduled);
+}
+
+function getRescheduleReason(item) {
+  return (
+    item?.cancellation_reason ||
+    item?.violation_reason ||
+    item?.reservation_status ||
+    ''
+  );
 }
 
 export default function ReservationsPage() {
@@ -181,9 +209,10 @@ export default function ReservationsPage() {
         <div className="reservation-grid">
           {items.map((item) => {
             const reservationId = getReservationId(item);
+            const sessionId = getSessionId(item);
 
             return (
-              <div className="reservation-card" key={reservationId || Math.random()}>
+              <div className="reservation-card" key={String(reservationId || sessionId || 'reservation-item')}>
                 <div className="reservation-top">
                   <h2>#{reservationId || '-'}</h2>
                   <span>{getStatus(item)}</span>
@@ -203,6 +232,10 @@ export default function ReservationsPage() {
                     <strong>{getOccupationId(item) || '-'}</strong>
                   </div>
                   <div>
+                    <span>Session ID</span>
+                    <strong>{getSessionId(item) || '-'}</strong>
+                  </div>
+                  <div>
                     <span>Language</span>
                     <strong>{getLanguageCode(item)}</strong>
                   </div>
@@ -210,16 +243,26 @@ export default function ReservationsPage() {
                     <span>Site ID</span>
                     <strong>{getSiteId(item) || '-'}</strong>
                   </div>
+                  <div>
+                    <span>Methodology</span>
+                    <strong>{getMethodology(item) || '-'}</strong>
+                  </div>
                 </div>
 
                 <button
                   className="primary-btn"
                   type="button"
                   onClick={() => startReschedule(item)}
-                  disabled={loadingId === String(reservationId)}
+                  disabled={loadingId === String(reservationId) || !canReschedule(item)}
                 >
-                  {loadingId === String(reservationId) ? 'Opening...' : 'Reschedule'}
+                  {loadingId === String(reservationId) ? 'Opening...' : canReschedule(item) ? 'Reschedule' : 'Reschedule unavailable'}
                 </button>
+
+                {!canReschedule(item) && getRescheduleReason(item) ? (
+                  <small style={{ display: 'block', marginTop: '8px', color: '#8b3d3d' }}>
+                    Reason: {String(getRescheduleReason(item))}
+                  </small>
+                ) : null}
               </div>
             );
           })}
