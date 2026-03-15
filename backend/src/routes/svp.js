@@ -33,6 +33,31 @@ async function getSvpToken(req) {
   return decryptString(session.svpAccessEnc);
 }
 
+async function getActiveSession(req, { includeUser = false } = {}) {
+  const sessionId = req.user?.sid;
+  if (!sessionId) {
+    const err = new Error('Missing session id on access token');
+    err.statusCode = 401;
+    throw err;
+  }
+
+  const session = await prisma.session.findUnique({
+    where: { id: String(sessionId) },
+    include: includeUser ? { user: true } : undefined,
+  });
+  if (!session || session.revokedAt) {
+    const err = new Error('Session not found or revoked');
+    err.statusCode = 401;
+    throw err;
+  }
+  if (!session.svpAccessEnc) {
+    const err = new Error('Missing SVP access token on session');
+    err.statusCode = 401;
+    throw err;
+  }
+  return session;
+}
+
 function buildPath(basePath, query = {}) {
   const params = new URLSearchParams();
 
@@ -213,6 +238,28 @@ router.get('/notifications', async (req, res, next) => {
 router.get('/user-balance/:svpUserId', async (req, res, next) => {
   try {
     res.json(await forward(req, 'GET', `/api/v1/individual_labor_space/user_balance/${req.params.svpUserId}`));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/user-balance', async (req, res, next) => {
+  try {
+    const session = await getActiveSession(req, { includeUser: true });
+    const svpUserId = session?.user?.svpUserId;
+    if (!svpUserId) {
+      const err = new Error('Missing svpUserId for current user');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const token = decryptString(session.svpAccessEnc);
+    res.json(
+      await svpRequest(buildPath(`/api/v1/individual_labor_space/user_balance/${svpUserId}`, req.query), {
+        method: 'GET',
+        token,
+      })
+    );
   } catch (error) {
     next(error);
   }

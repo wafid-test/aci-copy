@@ -205,6 +205,30 @@ function formatDateLabel(value) {
   return parsed.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 }
 
+function readNumeric(payload, keys) {
+  for (const key of keys) {
+    const value = payload?.[key] ?? payload?.data?.[key] ?? payload?.result?.[key];
+    if (value !== undefined && value !== null && value !== '') {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) return numeric;
+    }
+  }
+  return 0;
+}
+
+function detectBookingMode(balance) {
+  const reservationCredits = readNumeric(balance, ['reservation_credits', 'reservationCredits']);
+  const freeCertificates = readNumeric(balance, ['free_certificates_total', 'freeCertificatesTotal']);
+
+  if (reservationCredits > 0) {
+    return { type: 'reservation_credit', label: 'Reservation Credit', reservationCredits, freeCertificates };
+  }
+  if (freeCertificates > 0) {
+    return { type: 'free_certificate', label: 'Free Certificate', reservationCredits, freeCertificates };
+  }
+  return { type: 'paid', label: 'Paid Booking', reservationCredits, freeCertificates };
+}
+
 export default function BookingPage() {
   const router = useRouter();
   const [occupations, setOccupations] = useState([]);
@@ -229,6 +253,8 @@ export default function BookingPage() {
   const [creatingHold, setCreatingHold] = useState(false);
   const [booking, setBooking] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [loadingBalance, setLoadingBalance] = useState(false);
+  const [balanceInfo, setBalanceInfo] = useState(null);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
 
@@ -271,6 +297,7 @@ export default function BookingPage() {
     for (let year = minYear; year <= maxYear; year += 1) options.push(year);
     return options.length ? options : [fallback, fallback + 1];
   }, [availableDates]);
+  const bookingMode = useMemo(() => detectBookingMode(balanceInfo), [balanceInfo]);
 
   useEffect(() => {
     async function loadOccupations() {
@@ -385,6 +412,36 @@ export default function BookingPage() {
       setIsDatePickerOpen(false);
     }
   }, [selectedCity, availableDates.length]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadBalance() {
+      if (!selectedOccupationId) {
+        setBalanceInfo(null);
+        return;
+      }
+      setLoadingBalance(true);
+      try {
+        const params = new URLSearchParams({
+          methodology_type: methodology || 'in_person',
+          occupation_id: String(selectedOccupationId),
+          locale: 'en',
+        });
+        const data = await api(`/api/svp/user-balance?${params.toString()}`);
+        if (!active) return;
+        setBalanceInfo(data);
+      } catch {
+        if (!active) return;
+        setBalanceInfo(null);
+      } finally {
+        if (active) setLoadingBalance(false);
+      }
+    }
+    loadBalance();
+    return () => {
+      active = false;
+    };
+  }, [selectedOccupationId, methodology]);
 
   useEffect(() => {
     let active = true;
@@ -706,6 +763,9 @@ export default function BookingPage() {
         </div>
 
         <div className="meta-grid">
+          <div><span>Booking Type:</span> <strong>{loadingBalance ? 'Checking...' : bookingMode.label}</strong></div>
+          <div><span>Reservation Credits:</span> <strong>{loadingBalance ? '-' : bookingMode.reservationCredits}</strong></div>
+          <div><span>Free Certificates:</span> <strong>{loadingBalance ? '-' : bookingMode.freeCertificates}</strong></div>
           <div><span>City:</span> <strong>{siteCity || selectedCity || '-'}</strong></div>
           <div><span>Site ID:</span> <strong>{siteId || '-'}</strong></div>
           <div><span>Hold ID:</span> <strong>{holdId || '-'}</strong></div>
