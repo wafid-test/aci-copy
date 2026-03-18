@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
 import { api } from '../lib/api';
+import AuthGate from '../components/AuthGate';
 
 function decodeJwtPayload(token) {
   try {
@@ -15,7 +16,7 @@ function decodeJwtPayload(token) {
   }
 }
 
-export default function DashboardPage() {
+function ExistingDashboardPage() {
   const router = useRouter();
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -434,5 +435,13 @@ export default function DashboardPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <AuthGate>
+      <ExistingDashboardPage />
+    </AuthGate>
   );
 }

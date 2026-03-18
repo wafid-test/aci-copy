@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 
 import { api } from '../../lib/api';
+import AuthGate from '../../components/AuthGate';
 
 const DEFAULT_CATEGORY_ID = '159';
 const DEFAULT_BACKEND_URL = 'https://aci-api-production.up.railway.app';
@@ -236,7 +237,7 @@ function detectBookingMode(balance) {
   return { type: 'paid', label: 'Paid Booking', reservationCredits, freeCertificates };
 }
 
-export default function BookingPage() {
+function ExistingBookingPage() {
   const router = useRouter();
   const [occupations, setOccupations] = useState([]);
   const [availableDateEntries, setAvailableDateEntries] = useState([]);
@@ -1108,5 +1109,13 @@ export default function BookingPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <AuthGate>
+      <ExistingBookingPage />
+    </AuthGate>
   );
 }

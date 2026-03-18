@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { api } from '../../lib/api';
+import AuthGate from '../../components/AuthGate';
 
-export default function Login() {
+function ExistingLoginPage() {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [otpMethod, setOtpMethod] = useState('email');
@@ -127,5 +128,13 @@ export default function Login() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <AuthGate>
+      <ExistingLoginPage />
+    </AuthGate>
   );
 }

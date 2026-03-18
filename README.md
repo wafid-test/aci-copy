@@ -35,7 +35,8 @@ npm i
 npm run dev
 ```
 
-Go to: http://localhost:3000/auth/login
+Go to (local): http://localhost:3000/auth/login
+Go to (live): https://svp-book.vercel.app/auth/login
 
 ## Notes
 - SVP access token is extracted from `access_payload.access` (from your Postman response).
@@ -43,7 +44,8 @@ Go to: http://localhost:3000/auth/login
 
 
 ## Exam UI
-- Open: http://localhost:3000/exam/booking
+- Open (local): http://localhost:3000/exam/booking
+- Open (live): https://svp-book.vercel.app/exam/booking
 
 
 ## Booking Modal UI

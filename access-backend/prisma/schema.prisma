@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENCY
+  USER
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+}
+
+model Account {
+  id             String        @id @default(cuid())
+  name           String
+  email          String        @unique
+  password       String
+  role           Role
+  status         AccountStatus @default(PENDING)
+  agencyId       String?
+  agency         Account?      @relation("AgencyMembers", fields: [agencyId], references: [id])
+  members        Account[]     @relation("AgencyMembers")
+  createdById    String?
+  createdBy      Account?      @relation("CreatedAccounts", fields: [createdById], references: [id])
+  createdAccounts Account[]    @relation("CreatedAccounts")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([role])
+  @@index([status])
+  @@index([agencyId])
+}
