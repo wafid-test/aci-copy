@@ -43,6 +43,22 @@ npm run dev
 
 Server runs on `http://localhost:4000` by default.
 
+## Production / Railway Start
+
+`start.sh` now handles startup for production:
+
+```bash
+bash start.sh
+```
+
+It will:
+- install dependencies if `node_modules` is missing
+- run `prisma generate`
+- run `prisma migrate deploy` (when migrations exist)
+- optionally run admin bootstrap when `BOOTSTRAP_ADMIN=true`
+- build TypeScript if `dist/server.js` is missing
+- start `node dist/server.js`
+
 ## API Overview
 
 - `POST /api/auth/login`
