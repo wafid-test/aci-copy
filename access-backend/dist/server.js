@@ -7,8 +7,19 @@ import { authRouter } from './routes/auth.js';
 import { adminRouter } from './routes/admin.js';
 import { agencyRouter } from './routes/agency.js';
 const app = express();
+const allowedOrigins = (env.FRONTEND_URLS || env.FRONTEND_URL)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
 app.use(cors({
-    origin: env.FRONTEND_URL,
+    origin: (origin, callback) => {
+        // Allow requests without Origin header (curl/postman/server-to-server).
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        callback(null, allowedOrigins.includes(origin));
+    },
     credentials: true
 }));
 app.use(express.json());
