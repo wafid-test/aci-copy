@@ -2,7 +2,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
-import { env } from './config/env.js';
+import { env, envIssues } from './config/env.js';
 import { authRouter } from './routes/auth.js';
 import { adminRouter } from './routes/admin.js';
 import { agencyRouter } from './routes/agency.js';
@@ -36,6 +36,11 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/health', (_req, res) => {
+  if (envIssues.length > 0) {
+    res.status(503).json({ ok: false, issues: envIssues });
+    return;
+  }
+
   res.json({ ok: true });
 });
 
@@ -49,5 +54,8 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 });
 
 app.listen(env.PORT, () => {
+  if (envIssues.length > 0) {
+    console.warn(`Access backend started with degraded config: ${envIssues.join('; ')}`);
+  }
   console.log(`Access backend listening on http://localhost:${env.PORT}`);
 });

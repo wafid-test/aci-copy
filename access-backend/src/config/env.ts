@@ -1,11 +1,14 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const FALLBACK_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/access_backend?schema=public';
+const FALLBACK_JWT_SECRET = 'temporary-railway-fallback-secret';
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(4000),
-  DATABASE_URL: z.string().min(1),
-  JWT_SECRET: z.string().min(16),
+  DATABASE_URL: z.string().min(1).optional(),
+  JWT_SECRET: z.string().min(16).optional(),
   JWT_EXPIRES_IN: z.string().default('7d'),
   COOKIE_NAME: z.string().default('access_token'),
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
@@ -22,4 +25,23 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const env = parsed.data;
+export const envIssues: string[] = [];
+
+if (!parsed.data.DATABASE_URL) {
+  envIssues.push('DATABASE_URL is missing');
+  process.env.DATABASE_URL = FALLBACK_DATABASE_URL;
+}
+
+if (!parsed.data.JWT_SECRET) {
+  envIssues.push('JWT_SECRET is missing');
+}
+
+if (envIssues.length > 0) {
+  console.warn('Starting with degraded environment configuration:', envIssues.join('; '));
+}
+
+export const env = {
+  ...parsed.data,
+  DATABASE_URL: parsed.data.DATABASE_URL ?? process.env.DATABASE_URL ?? FALLBACK_DATABASE_URL,
+  JWT_SECRET: parsed.data.JWT_SECRET ?? FALLBACK_JWT_SECRET
+};
