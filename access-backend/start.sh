@@ -1,36 +1,12 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-echo "Starting access-backend boot sequence..."
+cd "$(dirname "$0")"
 
-if [ ! -d "node_modules" ]; then
-  echo "Installing dependencies..."
-  if [ -f "package-lock.json" ]; then
-    npm ci
-  else
-    npm install
-  fi
-fi
-
-echo "Generating Prisma client..."
-npm run prisma:generate
-
-if [ -d "./prisma/migrations" ]; then
-  echo "Running Prisma migrations (deploy)..."
-  npm run prisma:deploy
-else
-  echo "No prisma/migrations directory found. Skipping migrate deploy."
-fi
-
-if [ "${BOOTSTRAP_ADMIN:-false}" = "true" ]; then
-  echo "Bootstrapping default admin..."
-  npm run bootstrap:admin
-fi
-
-if [ ! -f "./dist/server.js" ]; then
-  echo "Build output missing. Building TypeScript..."
+# Railway should build the app during deploy; keep boot focused on starting
+# the HTTP server as early as possible.
+if [ ! -f ./dist/server.js ]; then
   npm run build
 fi
 
-echo "Launching access-backend..."
 exec node ./dist/server.js
