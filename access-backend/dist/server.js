@@ -2,7 +2,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
-import { env } from './config/env.js';
+import { env, envIssues } from './config/env.js';
 import { authRouter } from './routes/auth.js';
 import { adminRouter } from './routes/admin.js';
 import { agencyRouter } from './routes/agency.js';
@@ -29,6 +29,10 @@ app.get('/', (_req, res) => {
     res.json({ message: 'Access Backend Running' });
 });
 app.get('/health', (_req, res) => {
+    if (envIssues.length > 0) {
+        res.status(503).json({ ok: false, issues: envIssues });
+        return;
+    }
     res.json({ ok: true });
 });
 app.use('/api/auth', authRouter);
@@ -39,5 +43,8 @@ app.use((err, _req, res, _next) => {
     res.status(500).json({ message: 'Internal server error' });
 });
 app.listen(env.PORT, () => {
+    if (envIssues.length > 0) {
+        console.warn(`Access backend started with degraded config: ${envIssues.join('; ')}`);
+    }
     console.log(`Access backend listening on http://localhost:${env.PORT}`);
 });

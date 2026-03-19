@@ -130,7 +130,11 @@ export default function Page() {
             value={userForm.password}
             onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
           />
-          <select value={userForm.agencyId} onChange={(e) => setUserForm({ ...userForm, agencyId: e.target.value })}>
+          <select
+            aria-label="Assign agency"
+            value={userForm.agencyId}
+            onChange={(e) => setUserForm({ ...userForm, agencyId: e.target.value })}
+          >
             <option value="">Direct user (no agency)</option>
             {agencies.map((a) => (
               <option key={a.id} value={a.id}>
